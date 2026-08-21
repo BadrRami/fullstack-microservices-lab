@@ -145,21 +145,21 @@ public static void SupprimerEtudiant(Connection connexion) {
     }
 }
 
-    public static void main(String[] args) {
+    // public static void main(String[] args) {
 
-        Connection connexion = ConnexionDB.getConnexion();
+    //     Connection connexion = ConnexionDB.getConnexion();
 
-        if (connexion != null) {
+    //     if (connexion != null) {
 
-            System.out.println("Connexion réussie à PostgreSQL !");
+    //         System.out.println("Connexion réussie à PostgreSQL !");
 
-            SupprimerEtudiant(connexion);
+    //         SupprimerEtudiant(connexion);
 
-            try {
-                connexion.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-    }
+    //         try {
+    //             connexion.close();
+    //         } catch (Exception e) {
+    //             e.printStackTrace();
+    //         }
+    //     }
+    // }
 }
