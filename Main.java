@@ -1,5 +1,6 @@
-import java.util.Scanner;
 import java.sql.Connection;
+import java.util.List;
+import java.util.Scanner;
 
 public class Main {
 
@@ -11,8 +12,11 @@ public class Main {
 
         if (connexion == null) {
             System.out.println("Impossible de se connecter à PostgreSQL.");
+            input.close();
             return;
         }
+
+        EtudiantDAO etudiantDAO = new EtudiantDAO(connexion);
 
         int choix;
 
@@ -27,23 +31,88 @@ public class Main {
             System.out.print("Choisissez une option : ");
 
             choix = input.nextInt();
+            input.nextLine();
 
             switch (choix) {
 
                 case 1:
-                    Etudiant.afficherEtudiants(connexion);
+
+                    List<Etudiant> etudiants = etudiantDAO.afficherEtudiants();
+
+                    for (Etudiant etudiant : etudiants) {
+
+                        System.out.println(
+                            "ID: " + etudiant.getId() +
+                            ", Nom: " + etudiant.getNom() +
+                            ", Prénom: " + etudiant.getPrenom() +
+                            ", Âge: " + etudiant.getAge() +
+                            ", Email: " + etudiant.getEmail()
+                        );
+                    }
+
                     break;
 
                 case 2:
-                    Etudiant.AjouterEtudiant(connexion);
+
+                    System.out.print("Entrez le nom : ");
+                    String nom = input.nextLine();
+
+                    System.out.print("Entrez le prénom : ");
+                    String prenom = input.nextLine();
+
+                    System.out.print("Entrez l'âge : ");
+                    int age = input.nextInt();
+                    input.nextLine();
+
+                    System.out.print("Entrez l'email : ");
+                    String email = input.nextLine();
+
+                    Etudiant nouvelEtudiant = new Etudiant(nom, prenom, age, email);
+
+                    etudiantDAO.ajouterEtudiant(nouvelEtudiant);
+
                     break;
 
                 case 3:
-                    Etudiant.ModifierEtudiant(connexion);
+
+                    System.out.print("Entrez l'ID : ");
+                    int id = input.nextInt();
+                    input.nextLine();
+
+                    System.out.print("Nouveau nom : ");
+                    String nouveauNom = input.nextLine();
+
+                    System.out.print("Nouveau prénom : ");
+                    String nouveauPrenom = input.nextLine();
+
+                    System.out.print("Nouvel âge : ");
+                    int nouvelAge = input.nextInt();
+                    input.nextLine();
+
+                    System.out.print("Nouvel email : ");
+                    String nouvelEmail = input.nextLine();
+
+                    Etudiant etudiantModifie =
+                            new Etudiant(
+                                id,
+                                nouveauNom,
+                                nouveauPrenom,
+                                nouvelAge,
+                                nouvelEmail
+                            );
+
+                    etudiantDAO.modifierEtudiant(etudiantModifie);
+
                     break;
 
                 case 4:
-                    Etudiant.SupprimerEtudiant(connexion);
+
+                    System.out.print("Entrez l'ID de l'étudiant à supprimer : ");
+                    int idSuppression = input.nextInt();
+                    input.nextLine();
+
+                    etudiantDAO.supprimerEtudiant(idSuppression);
+
                     break;
 
                 case 5:
@@ -52,7 +121,6 @@ public class Main {
 
                 default:
                     System.out.println("Choix invalide !");
-
             }
 
         } while (choix != 5);
