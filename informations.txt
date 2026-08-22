@@ -1,0 +1,33 @@
+partie 1: postegreSql + java
+partie 2:HTTP + API REST
+
+*Qu'est-ce que HTTP ?
+HTTP = HyperText Transfer Protocol.
+C'est un protocole qui permet à un client de communiquer avec un serveur.
+
+*L'URL / endpoint
+Un endpoint est essentiellement un point d'accès de notre API.
+Par exemple :
+/etudiants   est un endpoint.
+Et :
+/etudiants/5     est également un endpoint.
+*Les codes HTTP
+200 → OK     // Tout fonctionne
+201 → Created    // Étudiant créé
+400 → Bad Request  /// Erreur dans la requête du client
+404 → Not Found  /// L'étudiant n'existe pas
+500 → Internal Server Error   // Erreur dans notre serveur Java
+
+*REST
+REST n'est pas un langage et ce n'est pas un framework.
+C'est une manière de concevoir des API web en utilisant notamment les concepts de HTTP.
+
+
+
+GET    /etudiants
+POST   /etudiants
+GET    /etudiants/5
+PUT    /etudiants/5
+DELETE /etudiants/5
+
+Cela représente une API REST très classique.
