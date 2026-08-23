@@ -31,3 +31,10 @@ PUT    /etudiants/5
 DELETE /etudiants/5
 
 Cela représente une API REST très classique.
+
+*HttpServer
+HttpServer est la classe Java qui nous permet de créer notre serveur HTTP.
+
+
+
+HttpServer reçoit la requête, le HttpHandler la traite, et HttpExchange permet au handler d'accéder à la requête et de construire la réponse.
