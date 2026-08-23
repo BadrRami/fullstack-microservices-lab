@@ -38,3 +38,56 @@ HttpServer est la classe Java qui nous permet de créer notre serveur HTTP.
 
 
 HttpServer reçoit la requête, le HttpHandler la traite, et HttpExchange permet au handler d'accéder à la requête et de construire la réponse.
+
+*Le cycle complet d’une requête HTTP
+Le cycle complet d’une requête HTTP commence lorsque le client envoie une requête au serveur, par exemple GET /etudiants. Le HttpServer reçoit cette requête et, grâce au routage, la dirige vers le Handler approprié. Le Handler analyse la demande et appelle le DAO pour effectuer l’opération nécessaire avec PostgreSQL. Le DAO récupère ou modifie les données dans la base de données, puis retourne le résultat au Handler. Enfin, le Handler prépare une réponse HTTP contenant le résultat, généralement sous forme de JSON, et la transmet au client. Ainsi, le cycle est : Client → HTTP → HttpServer → Handler → DAO → PostgreSQL → DAO → Handler → Réponse HTTP → Client.
+
+
+*Une requête HTTP
+Une requête HTTP est principalement composée de :
+
+Method + URL + Headers + Body
+
+Method  → Que veux-tu faire ?
+URL     → Sur quelle ressource ?
+Headers → Informations sur la communication ?
+Body    → Quelles données envoies-tu ?
+
+ex:
+POST /etudiants
+Content-Type: application/json
+
+{
+   "nom": "Rami",
+   "prenom": "Badr"
+}
+
+*Structure exacte d'une réponse HTTP
+Une réponse HTTP contient principalement 3 parties :
+
+RÉPONSE HTTP
+│
+├── 1. Status Code  //// Le status code indique au client ce qui s'est passé avec sa requête.
+├── 2. Headers
+└── 3. Body
+Headers
+
+Comme dans la requête, la réponse possède également des headers.
+Ils donnent des informations supplémentaires au client.
+Le plus important pour notre API sera :  Content-Type: application/json
+Body: Le body contient réellement les données que le serveur veut transmettre au client.
+
+*Les Headers HTTP
+Ils permettent de donner des informations sur la manière dont les données doivent être interprétées ou traitées.
+Content-Type: application/json  /// Le contenu envoyé dans le body est du JSON.
+Accept: application/json   // « Je souhaite que la réponse soit en JSON. »
+
+*Sérialisation
+
+Transformer un objet Java en JSON
+*Désérialisation
+
+Transformer un JSON en objet Java
+
+*JSON 
+est un format standard utilisé pour échanger des données entre le client et le serveur. Dans notre API, il permettra de transformer les objets Java en données envoyées au client et, inversement, de transformer les données reçues du client en objets Java.
