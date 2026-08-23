@@ -1,3 +1,4 @@
+
 // import java.sql.Connection;
 // import java.sql.PreparedStatement;
 // import java.sql.ResultSet;
@@ -163,6 +164,7 @@
     //     }
     // }
 // }
+package model;
 public class Etudiant {
 
     private int id;

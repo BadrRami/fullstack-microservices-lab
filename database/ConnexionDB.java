@@ -1,3 +1,4 @@
+
 // import java.sql.Connection; // représente la connexion entre notre programme Java et PostgreSQL.
 // import java.sql.DriverManager; // est la classe qui permet à Java de demander une connexion à la base de données.
 
@@ -30,7 +31,7 @@
 
 
 
-
+package database;
 import java.sql.Connection;
 import java.sql.DriverManager;
 
