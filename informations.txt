@@ -1,4 +1,17 @@
 partie 1: postegreSql + java
+*static 
+si un variable est static où une méthode static dans ces deux sont appartient à la classe pas à l'objet donc on peut par exemple utiliser la méthode sans
+créer l'objet 
+
+ResultSet = les résultats du SELECT.
+
+rs.next() = un booléen qui permet de savoir s'il y a une ligne à lire.
+
+rs.getString(), rs.getInt(), etc. = récupèrent les valeurs de la ligne actuelle.
+
+ps.setString(1, etudiant.getNom());  Mettre le nom de l'étudiant dans le premier ? de la requête.
+
+
 partie 2:HTTP + API REST
 
 *Qu'est-ce que HTTP ?
@@ -91,3 +104,18 @@ Transformer un JSON en objet Java
 
 *JSON 
 est un format standard utilisé pour échanger des données entre le client et le serveur. Dans notre API, il permettra de transformer les objets Java en données envoyées au client et, inversement, de transformer les données reçues du client en objets Java.
+
+*HttpHandler
+est une interface fournie par Java (com.sun.net.httpserver.HttpHandler).
+L'interface HttpHandler impose une méthode appelée : handle()
+handle() est la méthode qui va traiter la requête HTTP reçue.
+
+*HttpExchange
+HttpExchange est une classe Java fournie par l'API HttpServer.
+
+Elle représente l'échange HTTP complet entre le client et le serveur.
+Donc exchange nous donne accès à ce que le client nous a envoyé et nous permet de préparer ce que le serveur va lui répondre.
+
+
+partie 3: la couche service (logique métier)
+
