@@ -95,9 +95,7 @@ public class EtudiantHandler implements HttpHandler {
                         201,
                         "{\"message\":\"Étudiant ajouté avec succès\"}"
                 );
-            }
-
-            else if (method.equals("PUT")) {
+            }else if (method.equals("PUT")) {
 
                 Etudiant etudiant = objectMapper.readValue(
                         exchange.getRequestBody(),
