@@ -1,5 +1,6 @@
 package server;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
@@ -8,10 +9,9 @@ import database.ConnexionDB;
 import model.Etudiant;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.util.List;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class EtudiantHandler implements HttpHandler {
 
@@ -31,52 +31,223 @@ public class EtudiantHandler implements HttpHandler {
         String method = exchange.getRequestMethod();
         String path = exchange.getRequestURI().getPath();
 
-        if (method.equals("GET")) {
+        try {
 
-            List<Etudiant> etudiants = etudiantDAO.afficherEtudiants();
+            if (method.equals("GET")) {
 
-            String json = objectMapper.writeValueAsString(etudiants);
+                String[] parts = path.split("/");
 
-            exchange.getResponseHeaders().set("Content-Type", "application/json");
+                if (parts.length == 2) {
 
-            exchange.sendResponseHeaders(200, json.getBytes().length);
+                    List<Etudiant> etudiants = etudiantDAO.afficherEtudiants();
 
-            exchange.getResponseBody().write(json.getBytes());
+                    String json = objectMapper.writeValueAsString(etudiants);
 
-            exchange.getResponseBody().close();
-          
-        }else if (method.equals("POST")) {
+                    envoyerReponse(exchange, 200, json);
 
-            Etudiant etudiant = objectMapper.readValue(
-                exchange.getRequestBody(),
-                Etudiant.class
+                } else if (parts.length == 3) {
+
+                    int id;
+
+                    try {
+                        id = Integer.parseInt(parts[2]);
+                    } catch (NumberFormatException e) {
+                        envoyerErreur(exchange, 400, "L'ID doit être un nombre.");
+                        return;
+                    }
+
+                    if (id <= 0) {
+                        envoyerErreur(exchange, 400, "L'ID doit être supérieur à 0.");
+                        return;
+                    }
+
+                    Etudiant etudiant = etudiantDAO.chercherEtudiantParId(id);
+
+                    if (etudiant == null) {
+                        envoyerErreur(exchange, 404, "Étudiant introuvable.");
+                        return;
+                    }
+
+                    String json = objectMapper.writeValueAsString(etudiant);
+
+                    envoyerReponse(exchange, 200, json);
+
+                } else {
+
+                    envoyerErreur(exchange, 400, "URL invalide.");
+                }
+            }else if (method.equals("POST")) {
+
+                Etudiant etudiant = objectMapper.readValue(
+                        exchange.getRequestBody(),
+                        Etudiant.class
+                );
+
+                if (!donneesValides(etudiant)) {
+                    envoyerErreur(exchange, 400, "Les données de l'étudiant sont invalides.");
+                    return;
+                }
+
+                etudiantDAO.ajouterEtudiant(etudiant);
+
+                envoyerReponse(
+                        exchange,
+                        201,
+                        "{\"message\":\"Étudiant ajouté avec succès\"}"
+                );
+            }
+
+            else if (method.equals("PUT")) {
+
+                Etudiant etudiant = objectMapper.readValue(
+                        exchange.getRequestBody(),
+                        Etudiant.class
+                );
+
+                if (etudiant.getId() <= 0) {
+                    envoyerErreur(exchange, 400, "L'ID de l'étudiant est invalide.");
+                    return;
+                }
+
+                if (!donneesValides(etudiant)) {
+                    envoyerErreur(exchange, 400, "Les données de l'étudiant sont invalides.");
+                    return;
+                }
+
+                boolean modifie = etudiantDAO.modifierEtudiant(etudiant);
+
+                if (!modifie) {
+                    envoyerErreur(exchange, 404, "Étudiant introuvable.");
+                    return;
+                }
+
+                envoyerReponse(
+                        exchange,
+                        200,
+                        "{\"message\":\"Étudiant modifié avec succès\"}"
+                );
+            }
+
+            else if (method.equals("DELETE")) {
+
+                String[] parts = path.split("/");
+
+                if (parts.length != 3 || parts[2].isEmpty()) {
+                    envoyerErreur(exchange, 400, "ID étudiant manquant.");
+                    return;
+                }
+
+                int id;
+
+                try {
+                    id = Integer.parseInt(parts[2]);
+                } catch (NumberFormatException e) {
+                    envoyerErreur(exchange, 400, "L'ID doit être un nombre.");
+                    return;
+                }
+
+                if (id <= 0) {
+                    envoyerErreur(exchange, 400, "L'ID doit être supérieur à 0.");
+                    return;
+                }
+
+                boolean supprime = etudiantDAO.supprimerEtudiant(id);
+
+                if (!supprime) {
+                    envoyerErreur(exchange, 404, "Étudiant introuvable.");
+                    return;
+                }
+
+                envoyerReponse(
+                        exchange,
+                        200,
+                        "{\"message\":\"Étudiant supprimé avec succès\"}"
+                );
+            }
+
+            else {
+                envoyerErreur(
+                        exchange,
+                        405,
+                        "Méthode HTTP non autorisée."
+                );
+            }
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+
+            envoyerErreur(
+                    exchange,
+                    500,
+                    "Une erreur interne du serveur est survenue."
             );
+        }
+    }
 
-            etudiantDAO.ajouterEtudiant(etudiant);
+    private boolean donneesValides(Etudiant etudiant) {
 
-            exchange.sendResponseHeaders(201, -1);
-            exchange.getResponseBody().close();
-        }else if (method.equals("DELETE")) {
+        if (etudiant == null) {
+            return false;
+        }
 
-            String[] parts = path.split("/");
+        if (etudiant.getNom() == null || etudiant.getNom().isBlank()) {
+            return false;
+        }
 
-            int id = Integer.parseInt(parts[2]);
+        if (etudiant.getPrenom() == null || etudiant.getPrenom().isBlank()) {
+            return false;
+        }
 
-            etudiantDAO.supprimerEtudiant(id);
+        if (etudiant.getAge() <= 0) {
+            return false;
+        }
 
-            exchange.sendResponseHeaders(204, -1);
-            exchange.getResponseBody().close();
-        }else if (method.equals("PUT")) {
+        if (etudiant.getEmail() == null || etudiant.getEmail().isBlank()) {
+            return false;
+        }
 
-            Etudiant etudiant = objectMapper.readValue(
-                exchange.getRequestBody(),
-                Etudiant.class
-            );
+        return true;
+    }
 
-            etudiantDAO.modifierEtudiant(etudiant);
+    private void envoyerReponse(
+            HttpExchange exchange,
+            int statusCode,
+            String contenu
+    ) throws IOException {
 
-            exchange.sendResponseHeaders(204, -1);
-            exchange.getResponseBody().close();
+        byte[] response = contenu.getBytes(StandardCharsets.UTF_8);
+
+        exchange.getResponseHeaders().set(
+                "Content-Type",
+                "application/json; charset=UTF-8"
+        );
+
+        exchange.sendResponseHeaders(statusCode, response.length);
+
+        exchange.getResponseBody().write(response);
+        exchange.getResponseBody().close();
+    }
+
+    private void envoyerErreur(
+            HttpExchange exchange,
+            int statusCode,
+            String message
+    ) throws IOException {
+
+        String json = objectMapper.writeValueAsString(
+                new MessageErreur(message)
+        );
+
+        envoyerReponse(exchange, statusCode, json);
+    }
+
+    private static class MessageErreur {
+
+        public String message;
+
+        public MessageErreur(String message) {
+            this.message = message;
         }
     }
 }

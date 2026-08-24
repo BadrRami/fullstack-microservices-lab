@@ -67,9 +67,9 @@ public class EtudiantDAO {
         }
     }
 
-    public void modifierEtudiant(Etudiant etudiant) {
+    public boolean modifierEtudiant(Etudiant etudiant) {
 
-        String sql = " UPDATE etudiants SET nom = ?, prenom = ?, age = ?, email = ? WHERE id = ? ";
+        String sql = "UPDATE etudiants SET nom = ?, prenom = ?, age = ?, email = ? WHERE id = ?";
 
         try (PreparedStatement ps = connexion.prepareStatement(sql)) {
 
@@ -81,19 +81,15 @@ public class EtudiantDAO {
 
             int lignesModifiees = ps.executeUpdate();
 
-            if (lignesModifiees > 0) {
-                System.out.println("Étudiant modifié avec succès !");
-            } else {
-                System.out.println("Aucun étudiant trouvé avec cet ID.");
-            }
+            return lignesModifiees > 0;
 
         } catch (SQLException e) {
-            System.out.println("Erreur lors de la modification !");
             e.printStackTrace();
+            return false;
         }
     }
 
-    public void supprimerEtudiant(int id) {
+    public boolean supprimerEtudiant(int id) {
 
         String sql = "DELETE FROM etudiants WHERE id = ?";
 
@@ -103,15 +99,40 @@ public class EtudiantDAO {
 
             int lignesSupprimees = ps.executeUpdate();
 
-            if (lignesSupprimees > 0) {
-                System.out.println("Étudiant supprimé avec succès !");
-            } else {
-                System.out.println("Aucun étudiant trouvé avec cet ID.");
+            return lignesSupprimees > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+    public Etudiant chercherEtudiantParId(int id) {
+
+        String sql = "SELECT * FROM etudiants WHERE id = ?";
+
+        try (PreparedStatement ps = connexion.prepareStatement(sql)) {
+
+            ps.setInt(1, id);
+
+            try (ResultSet rs = ps.executeQuery()) {
+
+                if (rs.next()) {
+
+                    return new Etudiant(
+                        rs.getInt("id"),
+                        rs.getString("nom"),
+                        rs.getString("prenom"),
+                        rs.getInt("age"),
+                        rs.getString("email")
+                    );
+                }
             }
 
         } catch (SQLException e) {
-            System.out.println("Erreur lors de la suppression !");
             e.printStackTrace();
         }
+
+        return null;
     }
+    
 }
