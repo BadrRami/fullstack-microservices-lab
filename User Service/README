@@ -1,0 +1,310 @@
+Responsabilité principale :
+
+Le User Service est responsable de la gestion de l'identité des utilisateurs et du contrôle de leur accès au système.
+
+Cela se divise en 4 grandes responsabilités :
+
+Gestion des utilisateurs
+créer un compte ;
+modifier les informations personnelles ;
+consulter son profil ;
+désactiver/supprimer un compte.
+Authentification
+connexion ;
+déconnexion ;
+vérification de l'identité ;
+gestion du mot de passe ;
+éventuellement gestion des JWT/tokens.
+Gestion des rôles
+CLIENT
+ADMIN
+éventuellement d'autres rôles si notre système en nécessite.
+Autorisation
+déterminer si un utilisateur peut effectuer une opération ;
+par exemple : un client peut créer une réservation ;
+un client peut supprimer sa propre réservation selon les règles métier ;
+un administrateur peut gérer les chambres ;
+etc.
+Conception des Fonctionnalité 
+1.Fonctionnalité « S'inscrire »
+Objectif : permettre à un nouvel utilisateur de créer un compte dans le système hôtelier.
+Acteur : Utilisateur non authentifié.
+Endpoint envisagé :  POST /users/register
+Données reçues :nom,prenom,email,password
+
+Traitement du User Service :
+1. Recevoir les informations
+        ↓
+2. Valider les données
+        ↓
+3. Vérifier que l'email n'existe pas déjà
+        ↓
+4. Hasher le mot de passe
+        ↓
+5. Attribuer automatiquement le rôle CLIENT
+        ↓
+6. Enregistrer l'utilisateur dans user_db
+        ↓
+7. Retourner le résultat
+
+Classes concernées :
+User
+Role
+UserService
+UserDAO
+UserHandler
+##############################################################"
+2. Fonctionnalité : se connecter
+🎯 Objectif
+Permettre à un utilisateur qui possède déjà un compte de s'authentifier afin d'accéder aux 
+fonctionnalités protégées du système.
+L'utilisateur fournit : email, password et le User Service vérifie son identité.
+avec :
+
+{
+    "email": "badr@gmail.com",
+    "password": "motdepasse"
+}
+2. Que fait le User Service ?
+
+Le traitement sera :
+
+Utilisateur
+    │
+    │ email + password
+    ▼
+User Handler
+    │
+    ▼
+User Service
+    │
+    ├── 1. Vérifier que l'email existe
+    │
+    ├── 2. Récupérer l'utilisateur
+    │
+    ├── 3. Vérifier le mot de passe
+    │
+    ├── 4. Récupérer son rôle
+    │
+    └── 5. Authentifier l'utilisateur
+              │
+              ▼
+         Token / session
+
+Si les informations sont correctes :
+
+✅ Authentification réussie
+
+Sinon :
+
+❌ Email ou mot de passe incorrect
+
+Quelles classes interviennent ?
+
+Pour Login, nous réutilisons principalement les classes que nous avons déjà définies :
+
+UserHandler
+     ↓
+UserService
+     ↓
+UserDAO
+     ↓
+Database
+
+Résultat de la connexion
+
+Si tout est correct, le User Service peut retourner :
+
+{
+    "message": "Authentification réussie",
+    "token": "eyJ...",
+    "userId": 25,
+    "role": "CLIENT"
+}
+3. Fonctionnalité : se déconnecter
+🎯 Objectif
+
+Permettre à un utilisateur authentifié de mettre fin à sa session d'utilisation.
+
+Mais ici, il y a une particularité importante avec JWT.
+
+Contrairement à une session classique stockée côté serveur, un JWT est généralement stateless : le serveur ne garde pas nécessairement une session à supprimer.
+
+Le fonctionnement dépend donc de la stratégie d'authentification que nous choisirons.
+
+Pour notre conception, retenons simplement :
+Utilisateur authentifié
+        │
+        │ Logout
+        ▼
+   User Service
+        │
+        ▼
+Fin de l'authentification
+
+1. Que fait le système ?
+
+L'utilisateur possède actuellement un token :
+
+Client
+   │
+   │ JWT
+   ▼
+Utilisateur authentifié
+
+Lorsqu'il se déconnecte :
+
+Logout
+   ↓
+Le token n'est plus utilisé
+   ↓
+Utilisateur considéré comme déconnecté côté client
+
+Dans une implémentation JWT simple, le client supprime son token.
+
+Le User Service n'a donc pas forcément besoin de supprimer quelque chose dans la base de données.
+
+4. Fonctionnalité : gérer son profil
+
+L'objectif est de permettre à un utilisateur authentifié de consulter et de modifier ses propres informations personnelles.
+
+1. Consulter son profil
+
+L'utilisateur envoie :
+
+GET /users/me
+Authorization: Bearer <token>
+
+Le User Service :
+
+Token
+  ↓
+Identifier l'utilisateur
+  ↓
+Récupérer User
+  ↓
+Retourner ses informations
+
+2. Modifier son profil
+
+L'utilisateur peut également modifier certaines informations :
+
+PUT /users/me
+
+Par exemple :
+
+{
+    "nom": "RAMI",
+    "prenom": "Badr",
+    "email": "nouveau@gmail.com"
+}
+
+Le User Service va :
+
+Recevoir les nouvelles données
+        ↓
+Vérifier le token
+        ↓
+Identifier l'utilisateur
+        ↓
+Valider les données
+        ↓
+Vérifier les contraintes
+        ↓
+Modifier User
+        ↓
+Sauvegarder dans user_db
+3. Et le mot de passe ?
+
+Je conseille de considérer le changement de mot de passe comme une fonctionnalité séparée :
+
+PUT /users/me/password
+
+Cela nous permettra de traiter correctement :
+
+ancien mot de passe
+        ↓
+vérification
+        ↓
+nouveau mot de passe
+        ↓
+hash
+        ↓
+sauvegarde
+
+Nous le détaillerons ensuite.
+
+5. Fonctionnalité : changer son mot de passe
+🎯 Objectif
+
+Permettre à un utilisateur authentifié de modifier son mot de passe de manière sécurisée.
+
+Endpoint envisagé :
+
+PUT /users/me/password
+
+L'utilisateur envoie :
+
+{
+    "ancienPassword": "ancien123",
+    "nouveauPassword": "nouveau456"
+}
+1. Traitement
+
+Le User Service va suivre ce processus :
+
+Utilisateur
+     │
+     │ ancien + nouveau password
+     ▼
+UserHandler
+     │
+     ▼
+UserService
+     │
+     ├── Vérifier le token
+     │
+     ├── Identifier l'utilisateur
+     │
+     ├── Récupérer son mot de passe hashé
+     │
+     ├── Vérifier l'ancien mot de passe
+     │
+     ├── Valider le nouveau mot de passe
+     │
+     ├── Hasher le nouveau mot de passe
+     │
+     └── Sauvegarder
+              │
+              ▼
+          user_db
+2. Pourquoi vérifier l'ancien mot de passe ?
+
+Parce que le fait d'être connecté ne suffit pas toujours.
+Si quelqu'un obtient temporairement l'accès au compte d'un utilisateur, il ne 
+devrait pas pouvoir changer immédiatement le mot de passe sans connaître l'ancien.
+Donc :
+ancien password correct ? ── NON ──> ❌ Refus
+             │
+            OUI
+             ↓
+      changer le password
+
+
+USER SERVICE
+│
+├── 1. Register
+│      └── Créer un compte
+│
+├── 2. Login
+│      └── Authentifier l'utilisateur
+│
+├── 3. Logout
+│      └── Terminer l'authentification
+│
+├── 4. Profile
+│      ├── Consulter son profil
+│      └── Modifier son profil
+│
+└── 5. Password
+       └── Changer son mot de passe
