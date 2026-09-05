@@ -53,7 +53,9 @@ Role
 UserService
 UserDAO
 UserHandler
-##############################################################"
+#################################################
+#################################################
+#################################################
 2. Fonctionnalité : se connecter
 🎯 Objectif
 Permettre à un utilisateur qui possède déjà un compte de s'authentifier afin d'accéder aux 
@@ -121,6 +123,9 @@ Si tout est correct, le User Service peut retourner :
     "userId": 25,
     "role": "CLIENT"
 }
+#################################################
+#################################################
+#################################################
 3. Fonctionnalité : se déconnecter
 🎯 Objectif
 
@@ -163,7 +168,9 @@ Utilisateur considéré comme déconnecté côté client
 Dans une implémentation JWT simple, le client supprime son token.
 
 Le User Service n'a donc pas forcément besoin de supprimer quelque chose dans la base de données.
-
+#################################################
+#################################################
+#################################################
 4. Fonctionnalité : gérer son profil
 
 L'objectif est de permettre à un utilisateur authentifié de consulter et de modifier ses propres informations personnelles.
@@ -233,7 +240,9 @@ hash
 sauvegarde
 
 Nous le détaillerons ensuite.
-
+#################################################
+#################################################
+#################################################
 5. Fonctionnalité : changer son mot de passe
 🎯 Objectif
 
@@ -308,3 +317,161 @@ USER SERVICE
 │
 └── 5. Password
        └── Changer son mot de passe
+
+#################################################
+#################################################
+#################################################
+6. Gestion des utilisateurs par l'Admin
+1. Consulter les utilisateurs
+
+L'Admin peut demander la liste des utilisateurs :
+GET /users
+Le User Service :
+Admin
+  ↓
+User Service
+  ↓
+Vérifier le token
+  ↓
+Vérifier role = ADMIN
+  ↓
+Récupérer les utilisateurs
+Un CLIENT qui essaierait d'appeler cette opération doit recevoir un refus :
+
+CLIENT → GET /users
+             ↓
+          ❌ 403 Forbidden
+
+2. Consulter un utilisateur précis
+
+L'Admin peut également consulter un utilisateur :
+
+GET /users/{id}
+
+Par exemple :
+
+GET /users/25
+
+Le User Service vérifie encore :
+
+Utilisateur authentifié ?
+        ↓
+      OUI
+        ↓
+      ADMIN ?
+      /    \
+    OUI     NON
+    ↓        ↓
+   ✅        ❌
+
+3. Désactiver un utilisateur
+
+C'est une fonctionnalité particulièrement intéressante pour notre système.
+
+L'Admin peut désactiver un compte :
+
+PUT /users/{id}/disable
+
+Par exemple :
+
+Admin
+  ↓
+Désactiver User 25
+  ↓
+User Service
+  ↓
+active = false
+
+4. Réactiver un utilisateur
+
+L'Admin peut également réactiver un compte :
+
+PUT /users/{id}/enable
+active = true
+
+5. Supprimer un utilisateur
+
+L'Admin peut éventuellement supprimer un compte :
+
+DELETE /users/{id}
+
+Mais ici, attention : nous ne devons pas décider automatiquement que la suppression physique est autorisée.
+
+Pourquoi ?
+
+Parce qu'un utilisateur peut avoir :
+
+User
+  │
+  ├── Réservations
+  ├── Paiements
+  └── ...
+
+Or ces données appartiennent à d'autres microservices.
+
+Donc supprimer complètement User 25 peut avoir des conséquences sur l'historique du système.
+
+Pour notre conception, je recommande plutôt :
+
+Désactivation du compte comme opération normale, et réserver la suppression physique à un cas 
+particulier si nous en avons réellement besoin.
+
+#################################################
+#################################################
+#################################################
+
+7. Fonctionnalité : mot de passe oublié
+
+Cette fonctionnalité concerne un utilisateur qui n'arrive plus à se connecter parce qu'il a oublié son mot de passe.
+
+La différence avec Change Password est importante :
+
+Change Password → l'utilisateur est connecté et connaît son ancien mot de passe.
+Forgot Password → l'utilisateur n'est pas connecté et ne connaît plus son ancien mot de passe.
+
+1. Demander la réinitialisation
+
+L'utilisateur fournit son email :
+
+POST /users/forgot-password
+{
+    "email": "badr@gmail.com"
+}
+
+Le User Service :
+
+Email
+  ↓
+Chercher l'utilisateur
+  ↓
+Générer un token temporaire
+  ↓
+Envoyer un lien de réinitialisation
+
+Par exemple :
+
+https://hotel.com/reset-password?token=XYZ
+
+Le lien serait envoyé par email.
+
+2. Réinitialiser le mot de passe
+
+L'utilisateur clique sur le lien et fournit son nouveau mot de passe :
+
+POST /users/reset-password
+{
+    "token": "XYZ",
+    "nouveauPassword": "nouveau123"
+}
+
+Le User Service vérifie :
+
+Token valide ?
+      ↓
+Token non expiré ?
+      ↓
+Token appartient à quel utilisateur ?
+      ↓
+Hasher le nouveau password
+      ↓
+Mettre à jour User
