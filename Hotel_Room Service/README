@@ -1,0 +1,707 @@
+2. Hotel / Room Service
+🎯 Responsabilité principale
+
+Ce service est responsable de la gestion de l'offre hôtelière :
+
+hôtels, chambres et disponibilité des chambres.
+
+Autrement dit, il doit savoir quels hôtels existent, quelles chambres ils possèdent, leurs 
+caractéristiques et leur état de disponibilité.
+
+1. Gestion des hôtels
+
+Le service doit pouvoir :
+
+créer un hôtel ;
+modifier les informations d'un hôtel ;
+consulter un hôtel ;
+supprimer/désactiver un hôtel ;
+lister les hôtels.
+
+2. Gestion des chambres
+
+Un hôtel possède plusieurs chambres.
+
+Le service doit donc gérer :
+
+création d'une chambre ;
+modification d'une chambre ;
+consultation d'une chambre ;
+suppression/désactivation ;
+caractéristiques de la chambre ;
+prix ;
+capacité ;
+type de chambre ;
+état de la chambre.
+
+3. Gestion de la disponibilité
+
+C'est une responsabilité très importante.
+
+Le Hotel/Room Service doit pouvoir répondre à une question comme :
+
+« Quelles chambres sont disponibles pour cette période ? »
+
+Par exemple :
+
+GET /rooms/available
+        │
+        ├── date_arrivee
+        ├── date_depart
+        └── nombre_personnes
+
+Le service analyse ses données et retourne les chambres disponibles.
+
+Mais attention ⚠️
+
+Il faut distinguer :
+
+disponibilité de la chambre et réservation de la chambre.
+
+Le Hotel/Room Service peut dire :
+
+« La chambre 205 est disponible. »
+
+Mais il ne doit pas créer la réservation.
+
+C'est le Reservation Service qui sera responsable de :
+
+« Je réserve la chambre 205 pour cet utilisateur du 10 au 15 septembre. »
+
+4. Qui peut effectuer ces opérations ?
+
+Il faut déjà commencer à définir les droits.
+
+ADMIN
+
+Peut :
+
+Créer hôtel
+Modifier hôtel
+Supprimer/désactiver hôtel
+Créer chambre
+Modifier chambre
+Désactiver chambre
+CLIENT
+
+Peut :
+
+Consulter les hôtels
+Consulter les chambres
+Rechercher les chambres disponibles
+
+Mais :
+
+CLIENT → créer une chambre ❌
+CLIENT → modifier une chambre ❌
+CLIENT → supprimer un hôtel ❌
+
+5. Ce que ce service NE doit PAS gérer
+
+C'est aussi important que de savoir ce qu'il gère.
+
+Le Hotel/Room Service ne doit pas gérer :
+
+❌ utilisateurs
+❌ authentification
+❌ réservation
+❌ paiement
+❌ mot de passe
+
+Par exemple, lorsqu'un client réserve une chambre :
+
+Client
+   ↓
+Reservation Service
+   ↓
+"Cette chambre est-elle disponible ?"
+   ↓
+Hotel/Room Service
+   ↓
+"Oui"
+
+Puis :
+
+Reservation Service
+   ↓
+Création de la réservation
+
+Le Hotel/Room Service ne devient donc pas responsable de la réservation.
+
+1. Première fonctionnalité : gérer les chambres
+
+La première vraie responsabilité de ce service est donc la gestion du parc de chambres de l’hôtel.
+
+👤 Acteur
+
+Principalement :
+
+Administrateur
+éventuellement Personnel autorisé de l’hôtel
+
+Le client ne crée ni ne modifie une chambre.
+
+2. Ajouter une chambre
+
+L’administrateur doit pouvoir enregistrer une nouvelle chambre dans le système.
+
+Exemple :
+
+Ajouter une chambre
+        ↓
+Hotel/Room Service
+        ↓
+Vérification des données
+        ↓
+Enregistrement dans la base de données
+
+La chambre devient ensuite disponible pour être consultée et éventuellement réservée.
+
+Quelles informations ?
+
+Conceptuellement, une Chambre doit avoir des informations permettant de l'identifier et de savoir ce qu'elle représente.
+
+Par exemple :
+
+Chambre
+-------------------------
+id
+numero
+type
+prix
+capacite
+statut
+description
+
+⚠️ Attention : ce ne sont pas encore forcément les attributs définitifs de notre classe Chambre. Nous devons les comparer avec ton diagramme de classe global avant de les figer.
+
+3. Modifier une chambre
+
+L'administrateur peut modifier les informations d'une chambre.
+
+Par exemple :
+
+PUT /rooms/{id}
+
+Le processus serait :
+
+Admin
+ ↓
+RoomHandler
+ ↓
+RoomService
+ ↓
+RoomDAO
+ ↓
+room_db
+
+Le RoomService vérifie notamment que la chambre existe et que les nouvelles données sont valides.
+
+4. Consulter les chambres
+
+Ici, Admin et Client peuvent avoir accès à la consultation, mais pas aux mêmes informations/actions.
+
+Client
+
+Le client peut par exemple :
+
+GET /rooms
+GET /rooms/{id}
+
+pour consulter :
+
+les chambres disponibles ;
+leur type ;
+leur capacité ;
+leur prix ;
+leurs caractéristiques.
+Admin
+
+L'administrateur peut en plus consulter les informations de gestion :
+
+toutes les chambres ;
+leur état ;
+leur statut ;
+etc.
+5. Supprimer une chambre
+
+L'administrateur peut également retirer une chambre du système.
+
+Mais ici, il faut faire attention à quelque chose d'important :
+
+on ne devrait probablement pas supprimer physiquement une chambre qui possède déjà un historique de réservations.
+
+Par exemple :
+
+Chambre 205
+   ↓
+Réservation en janvier
+Réservation en février
+Réservation en mars
+
+Si on fait un DELETE définitif, on risque de casser notre historique.
+
+On pourra donc probablement utiliser une logique comme :
+
+active = true
+active = false
+
+Une chambre désactivée n'est plus proposée pour les nouvelles réservations, mais son historique reste conservé.
+
+C'est exactement le même principe que celui qu'on avait retenu pour les utilisateurs.
+
+6. Mais il manque une fonctionnalité essentielle : disponibilité
+
+C'est ici que notre séparation entre services devient intéressante.
+
+Le Hotel/Room Service connaît l'état et les informations des chambres.
+
+Mais le Reservation Service connaît les réservations.
+
+Donc lorsqu'un client veut réserver une chambre pour une période donnée :
+
+Client
+   ↓
+Reservation Service
+   ↓
+"Est-ce que la chambre 205 est disponible
+du 10 au 15 septembre ?"
+   ↓
+Hotel/Room Service
+
+Le Hotel/Room Service peut fournir les informations nécessaires sur la chambre, tandis que le Reservation Service vérifie les réservations existantes.
+
+On doit donc être très précis ici : la disponibilité pour une période est une notion qui dépend des réservations, donc elle ne doit pas être entièrement enfermée dans le Room Service.
+
+C'est justement une frontière importante entre nos deux microservices.
+
+7. Notre Hotel/Room Service commence donc à prendre cette forme
+           HOTEL / ROOM SERVICE
+                    │
+        ┌───────────┴───────────┐
+        │                       │
+   Gestion chambres       Consultation
+        │                       │
+   ┌────┼────┐            ┌─────┼─────┐
+   │    │    │            │     │     │
+Ajouter Modifier Désactiver  Client  Admin
+   │
+   └───────────────
+
+Et côté classes, on commence à avoir :
+
+Chambre
+RoomService
+RoomDAO
+RoomHandler
+
+Nous devons ensuite déterminer s'il existe réellement une classe Hotel dans ce microservice ou si, puisque nous gérons un seul hôtel, elle est inutile pour notre première version.
+
+
+🧠 Résumé à retenir
+
+1. Quelle est la fonctionnalité ?
+→ Ce que l'utilisateur demande au système de faire.
+
+2. Quel est son rôle ?
+→ Pourquoi cette fonctionnalité existe et quel problème métier elle résout.
+
+3. Comment le système l'implémente ?
+→ Le chemin de la demande à travers les couches :
+
+Utilisateur
+    ↓
+Handler
+    ↓
+Service
+    ↓
+DAO
+    ↓
+Base de données
+
+avec les éventuelles règles métier et communications avec les autres microservices.
+
+Exemple avec notre fonctionnalité actuelle
+
+Fonctionnalité : Ajouter une chambre.
+
+Rôle : permettre à l'administrateur d'enregistrer une nouvelle chambre de l'hôtel afin qu'elle soit connue par le système.
+
+Implémentation :
+
+Admin
+ ↓
+POST /rooms
+ ↓
+RoomHandler
+ ↓
+RoomService
+ ├── valide les données
+ ├── vérifie le numéro
+ └── vérifie le type de chambre
+ ↓
+RoomDAO
+ ↓
+room_db
+
+
+Fonctionnalité : Modifier une chambre
+1. Qui peut l'utiliser ?
+
+L'acteur est :
+
+Administrateur / personnel autorisé
+
+Le client ne peut pas modifier les informations d'une chambre.
+
+2. Quel est le rôle de cette fonctionnalité ?
+
+Elle permet de mettre à jour les informations d'une chambre déjà enregistrée.
+
+Par exemple, l'administrateur peut modifier :
+
+le type de chambre ;
+le prix ;
+la capacité ;
+la description ;
+l'état de la chambre ;
+les équipements associés.
+
+Exemple :
+
+Chambre 205
+    ↓
+Avant :
+DOUBLE — 800 DH
+
+Après :
+DOUBLE — 900 DH
+
+L'objectif est donc de maintenir les informations de l'hôtel à jour.
+
+3. Comment le système l'implémente ?
+
+L'administrateur envoie une requête HTTP :
+
+PUT /rooms/205
+
+avec les nouvelles informations.
+
+Puis :
+
+Admin
+  ↓
+PUT /rooms/205
+  ↓
+RoomHandler
+  ↓
+RoomService
+  │
+  ├── Vérifier que la chambre existe
+  ├── Valider les nouvelles données
+  ├── Vérifier le type de chambre
+  └── Appliquer les règles métier
+  ↓
+RoomDAO
+  ↓
+room_db
+  ↓
+Chambre mise à jour
+Pourquoi le Service est important ?
+
+Imaginons que l'administrateur demande :
+
+prix = -500 DH
+
+Le Handler reçoit simplement la requête.
+
+C'est le RoomService qui doit dire :
+
+❌ Impossible, le prix doit être valide.
+
+Même chose si l'administrateur essaie de modifier une chambre qui n'existe pas.
+
+
+Fonctionnalité : Consulter une chambre.
+
+Rôle : permettre au client ou à l'administrateur de récupérer les informations détaillées d'une chambre existante.
+
+Implémentation :
+
+Client
+  ↓
+GET /rooms/{id}
+  ↓
+RoomHandler
+  ↓
+RoomService
+  ↓
+RoomDAO
+  ↓
+PostgreSQL
+  ↓
+Informations de la chambre
+
+👉 À retenir :
+Le Handler reçoit → le Service vérifie → le DAO cherche dans la base → les informations remontent au client.
+
+🧠 Résumé à retenir
+
+Fonctionnalité : présenter les chambres à la clientèle.
+
+Rôle : le client consulte les types de chambres plutôt que les chambres physiques une par une. Ensuite, pour une période donnée, le système indique quels types sont réellement disponibles.
+
+Implémentation :
+
+Catalogue :
+Client
+  ↓
+Hotel/Room Service
+  ↓
+Types de chambres
+  ↓
+Simple / Double / Suite
+
+
+Recherche avec dates :
+Client
+  ↓
+Reservation Service
+  ↓
+Vérification des réservations
+  ↓
+Disponibilité par type
+
+🧠 Résumé à retenir
+
+Fonctionnalité : Désactiver une chambre.
+
+Rôle : permettre à l'administrateur de retirer temporairement une chambre de l'exploitation sans supprimer son historique.
+
+Implémentation :
+
+Admin
+  ↓
+PATCH /rooms/{id}/deactivate
+  ↓
+RoomHandler
+  ↓
+RoomService
+  ↓
+RoomDAO
+  ↓
+PostgreSQL
+  ↓
+active = false
+
+👉 À retenir :
+
+On ne supprime pas forcément une chambre : on peut la désactiver.
+
+Et surtout :
+
+Inactive ≠ indisponible pour une date donnée.
+
+🧠 Résumé à retenir
+
+Fonctionnalité : Ajouter un type de chambre.
+
+Rôle : permettre à l'administrateur de créer une catégorie de chambres, comme Simple, Double ou Suite, qui pourra ensuite être associée à plusieurs chambres physiques.
+
+Implémentation :
+
+Admin
+  ↓
+POST /room-types
+  ↓
+RoomTypeHandler
+  ↓
+RoomTypeService
+  ↓
+RoomTypeDAO
+  ↓
+PostgreSQL
+
+👉 À retenir :
+
+TypeChambre = catégorie présentée au client.
+Chambre = unité physique réelle de l'hôtel.
+
+🧠 Résumé à retenir
+
+Fonctionnalité : Modifier un type de chambre.
+
+Rôle : permettre à l'administrateur de mettre à jour les informations d'une catégorie de chambres existante.
+
+Implémentation :
+
+Admin
+  ↓
+PUT /room-types/{id}
+  ↓
+RoomTypeHandler
+  ↓
+RoomTypeService
+  ↓
+RoomTypeDAO
+  ↓
+PostgreSQL
+
+👉 À retenir :
+
+On modifie le type une seule fois, et toutes les chambres qui utilisent ce type restent liées au même type.
+
+
+🧠 Résumé à retenir
+
+Fonctionnalité : Consulter les types de chambres.
+
+Rôle : permettre au client de découvrir les catégories proposées par l'hôtel (Simple, Double, Suite, etc.) et leurs caractéristiques.
+
+Implémentation :
+
+Client
+  ↓
+GET /room-types
+  ↓
+RoomTypeHandler
+  ↓
+RoomTypeService
+  ↓
+RoomTypeDAO
+  ↓
+PostgreSQL
+  ↓
+Types de chambres
+
+👉 À retenir :
+
+Le client consulte les TYPES de chambres, pas les chambres physiques une par une.
+
+🧠 Résumé à retenir
+
+Fonctionnalité : Désactiver un type de chambre.
+
+Rôle : permettre à l'administrateur de retirer temporairement une catégorie du catalogue sans supprimer ses données ni son historique.
+
+Implémentation :
+
+Admin
+  ↓
+PATCH /room-types/{id}/deactivate
+  ↓
+RoomTypeHandler
+  ↓
+RoomTypeService
+  ↓
+RoomTypeDAO
+  ↓
+PostgreSQL
+  ↓
+active = false
+
+👉 À retenir :
+
+Désactiver un type ne signifie pas supprimer les chambres qui lui sont associées.
+
+Fonctionnalité : Ajouter un équipement.
+
+Rôle : permettre à l'administrateur d'enregistrer un équipement réutilisable dans le système (TV, Wi-Fi, Climatisation, etc.).
+
+Implémentation :
+
+Admin
+  ↓
+POST /equipements
+  ↓
+EquipementHandler
+  ↓
+EquipementService
+  ↓
+EquipementDAO
+  ↓
+PostgreSQL
+
+👉 À retenir :
+
+On crée d'abord l'équipement dans Equipement, puis on l'associe aux chambres grâce à ChambreEquipement.
+
+🧠 Résumé à retenir
+
+Fonctionnalité : Modifier un équipement.
+
+Rôle : permettre à l'administrateur de mettre à jour les informations d'un équipement existant sans modifier les associations avec les chambres.
+
+Implémentation :
+
+Admin
+  ↓
+PUT /equipements/{id}
+  ↓
+EquipementHandler
+  ↓
+EquipementService
+  ↓
+Validation + règles métier
+  ↓
+EquipementDAO
+  ↓
+PostgreSQL
+
+👉 À retenir :
+
+On modifie l'équipement lui-même ; ses associations avec les chambres restent intactes.
+
+🧠 Résumé à retenir
+
+Fonctionnalité : Consulter les équipements.
+
+Rôle : permettre au client ou à l'administrateur de connaître les équipements disponibles, notamment ceux associés à une chambre.
+
+Implémentation :
+
+Client
+  ↓
+GET /rooms/{id}/equipements
+  ↓
+EquipementHandler
+  ↓
+EquipementService
+  ↓
+EquipementDAO
+  ↓
+ChambreEquipement
+  ↓
+Equipement
+  ↓
+Liste des équipements
+
+👉 À retenir :
+
+Pour savoir quels équipements possède une chambre, on passe par ChambreEquipement.
+
+🧠 Résumé à retenir
+
+Fonctionnalité : Désactiver un équipement.
+
+Rôle : permettre à l'administrateur de rendre temporairement un équipement inactif sans supprimer ses données ni nécessairement supprimer ses associations.
+
+Implémentation :
+
+Admin
+  ↓
+PATCH /equipements/{id}/deactivate
+  ↓
+EquipementHandler
+  ↓
+EquipementService
+  ↓
+EquipementDAO
+  ↓
+PostgreSQL
+  ↓
+active = false
+
+👉 À retenir :
+
+Désactiver un équipement ≠ supprimer l'équipement ni supprimer automatiquement ses associations.
