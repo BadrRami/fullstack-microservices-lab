@@ -7496,7 +7496,8 @@
 							"_parent": {
 								"$ref": "AAAAAAGgcd+RWNESblk="
 							},
-							"name": "id"
+							"name": "id",
+							"type": ""
 						},
 						{
 							"_type": "UMLAttribute",
@@ -7504,7 +7505,8 @@
 							"_parent": {
 								"$ref": "AAAAAAGgcd+RWNESblk="
 							},
-							"name": "nom"
+							"name": "nom",
+							"type": ""
 						},
 						{
 							"_type": "UMLAttribute",
@@ -7512,7 +7514,8 @@
 							"_parent": {
 								"$ref": "AAAAAAGgcd+RWNESblk="
 							},
-							"name": "description"
+							"name": "description",
+							"type": ""
 						}
 					]
 				},
@@ -7613,7 +7616,8 @@
 							"_parent": {
 								"$ref": "AAAAAAGgceFybdZ5xaE="
 							},
-							"name": "chambre_id"
+							"name": "chambre_id",
+							"type": ""
 						},
 						{
 							"_type": "UMLAttribute",
@@ -7621,7 +7625,8 @@
 							"_parent": {
 								"$ref": "AAAAAAGgceFybdZ5xaE="
 							},
-							"name": "equipement_id"
+							"name": "equipement_id",
+							"type": ""
 						}
 					]
 				}

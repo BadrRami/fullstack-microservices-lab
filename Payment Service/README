@@ -1,0 +1,65 @@
+1. Rôle du Payment Service
+Le Payment Service est responsable de la gestion financière des réservations.
+
+Ses principales responsabilités sont :
+- Enregistrer un paiement.
+- Traiter une demande de paiement.
+- Consulter les informations d'un paiement.
+- Vérifier le statut d'un paiement.
+- Gérer les échecs de paiement.
+- Gérer les remboursements.
+
+Il ne doit pas gérer les réservations elles-mêmes. Cette responsabilité reste dans Reservation Service.
+
+2. Identifier les classes principales
+Je propose de commencer avec les classes suivantes :
+Classe	           Responsabilité
+Payment	            Représente un paiement
+PaymentStatus	    Définit les statuts possibles
+PaymentMethod	    Définit les moyens de paiement
+PaymentService	    Contient la logique métier
+PaymentDAO	        Gère les accès à PostgreSQL
+PaymentHandler	    Gère les requêtes HTTP
+
+
+Classe Payment
+Voici les attributs proposés :
+Attribut	            Type	         Description
+id	                    Long	         Identifiant du paiement
+reservationId	        Long	         Identifiant de la réservation
+amount	                BigDecimal	     Montant du paiement
+currency	            String	         Devise (MAD, EUR...)
+method	                PaymentMethod	 Moyen de paiement
+status	                PaymentStatus	 Statut du paiement
+transactionReference	String	         Référence de transaction externe
+createdAt	            LocalDateTime	 Date de création
+updatedAt	            LocalDateTime	 Date de modification
+paidAt	                LocalDateTime	 Date du paiement réussi
+
+Pourquoi reservationId ?
+
+Parce que le paiement concerne une réservation, mais les deux entités appartiennent à des microservices différents. Nous conservons donc uniquement l'identifiant de la réservation.
+3. Définir les statuts
+Pour notre première version :
+Statut	         Signification
+PENDING	         Paiement en attente
+SUCCEEDED	     Paiement réussi
+FAILED	         Paiement échoué
+REFUNDED	     Paiement remboursé
+
+Nous pourrons ajouter PARTIALLY_REFUNDED si nous décidons de gérer les remboursements partiels.
+
+Moyens de paiement
+Nous pouvons prévoir une énumération PaymentMethod :
+- CASH : paiement en espèces à la réception.
+- CARD : carte bancaire.
+- BANK_TRANSFER : virement bancaire.
+Les moyens réellement disponibles dépendront de notre intégration.
+
+4. Les principales fonctionnalités
+Fonctionnalité	                               Endpoint proposé
+Créer un paiement	                            POST /payments
+Consulter un paiement	                        GET /payments/{id}
+Lister les paiements	                        GET /payments
+Consulter les paiements d'une réservation	    GET /payments/reservation/{reservationId}
+Traiter un remboursement	                    POST /payments/{id}/refund
