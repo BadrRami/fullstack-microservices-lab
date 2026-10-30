@@ -1,0 +1,75 @@
+1. Rôle du Reservation Service
+Le Reservation Service est responsable de toute la logique liée aux réservations des clients.
+
+Il doit permettre de :
+- Créer une réservation.
+- Consulter une réservation.
+- Lister les réservations.
+- Modifier une réservation.
+- Annuler une réservation.
+- Gérer le statut d'une réservation.
+- Vérifier la disponibilité d'une chambre avant de confirmer une réservation.
+
+2. Identifier les classes principales
+
+Avant de définir les fonctionnalités, identifions les classes qui appartiennent à ce service.
+
+Je propose de commencer avec cette structure :
+
+Classe                         Responsabilité
+
+Reservation                      Représente une réservation
+
+ReservationStatus                Définit les statuts possibles
+
+ReservationService               Contient la logique métier
+
+ReservationDAO                   Gère les accès à PostgreSQL
+
+ReservationHandler                Reçoit et traite les requêtes HTTP
+
+La classe principale sera donc Reservation
+
+
+3. Conception de la classe Reservation
+Voici les attributs que je propose :
+Attribut	    Type	              Description
+id	            Long	              Identifiant de réservation
+userId	        Long	              Identifiant du client
+roomId	        Long	              Identifiant de la chambre
+checkInDate  	LocalDate	          Date d'arrivée
+checkOutDate	LocalDate	          Date de départ
+numberOfGuests	Integer	              Nombre de personnes
+totalPrice	    BigDecimal  	      Prix total de la réservation
+status	        ReservationStatus	  Statut de réservation
+paymentDeadline	LocalDateTime	      Date et heure limite pour effectuer le paiement
+createdAt	    LocalDateTime	      Date de création
+
+Pourquoi userId et roomId plutôt que des objets User et Room ?
+
+Parce que chaque microservice possède sa propre base de données.
+
+Par conséquent :
+- Nous ne créons pas de relation SQL directe avec la table User.
+- Nous ne créons pas de relation SQL directe avec la table Room.
+- Nous conservons uniquement leurs identifiants pour communiquer avec les services concernés.
+
+4. Définir les statuts d'une réservation
+Nous pouvons utiliser une énumération ReservationStatus :
+
+Statut	        Signification
+PENDING	        Réservation en attente de confirmation
+CONFIRMED	    Réservation confirmée
+CANCELLED	    Réservation annulée
+COMPLETED	    Séjour terminé
+
+
+5. Définir les endpoints REST
+Voici une première proposition pour notre API.
+Méthode	        Endpoint	                      Fonctionnalité
+POST	        /reservations	                  Créer une réservation
+GET	            /reservations/{id}	              Consulter une réservation
+GET	            /reservations	                  Lister les réservations
+GET	            /reservations/user/{userId}	      Lister les réservations d'un client
+PUT	            /reservations/{id}	              Modifier une réservation
+PATCH	        /reservations/{id}/cancel	      Annuler une réservation
