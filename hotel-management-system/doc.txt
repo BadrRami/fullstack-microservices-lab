@@ -1,0 +1,7 @@
+pom.xml signifie Project Object Model. C'est le fichier central de configuration d'un projet Maven.
+
+Il permet à Maven de savoir :
+- Comment identifier notre projet.
+- Quelle version de Java utiliser.
+- Quelles bibliothèques télécharger.
+- Comment compiler et tester notre application.
