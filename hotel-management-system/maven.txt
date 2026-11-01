@@ -1,0 +1,200 @@
+Maven est un outil qui automatise plusieurs tâches liées au développement d'un projet Java.
+
+Ses principales responsabilités sont :
+1. Gestion des dépendances : télécharger et gérer les bibliothèques nécessaires à notre projet.
+2. Compilation : compiler les fichiers Java.
+3. Exécution des tests : lancer les tests automatisés.
+4. Packaging : générer un fichier .jar contenant notre application.
+5. Gestion du cycle de construction : organiser les différentes étapes de construction du projet.
+
+Il existe donc deux notions importantes :
+- Maven Central : dépôt distant contenant des bibliothèques Java.
+- Local Repository : dossier sur ton ordinateur où Maven conserve les bibliothèques téléchargées.
+
+notez bien que si java souhaite utiliser une bibliothèque maven qui est chargé de la trouvé pour 
+La rendre disponible pour la compilation et l'exécution.
+
+Le fichier pom.xml
+C'est le fichier de configuration central d'un projet Maven.
+
+POM signifie Project Object Model.
+Il contient les informations nécessaires à Maven pour comprendre et construire notre projet.
+
+1. Les informations du projet
+
+Ces trois éléments permettent d'identifier notre projet.
+  Élément	        Signification
+groupId     	    Identifie le groupe ou l'organisation du projet
+artifactId	        Identifie le nom du projet
+version	            Définit sa version
+
+2. Les properties
+Dans notre fichier :
+
+<properties>
+    <maven.compiler.release>21</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+</properties>
+
+Ces propriétés définissent des paramètres utilisés pendant la construction.
+- maven.compiler.release : indique que nous voulons compiler notre code pour Java 21.
+- project.build.sourceEncoding : définit l'encodage des fichiers sources, ici UTF-8.
+
+3. Les dependencies
+Voici un exemple de notre configuration :
+
+<dependencies>
+
+    <dependency>
+        <groupId>org.postgresql</groupId>
+        <artifactId>postgresql</artifactId>
+        <version>42.7.8</version>
+    </dependency>
+
+    <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+        <version>2.20.1</version>
+    </dependency>
+
+</dependencies>
+
+Chaque bloc <dependency> représente une bibliothèque externe.
+
+Prenons Jackson :
+<dependency>
+    <groupId>com.fasterxml.jackson.core</groupId>
+    <artifactId>jackson-databind</artifactId>
+    <version>2.20.1</version>
+</dependency>
+
+
+Il contient trois informations :
+- groupId : l'organisation qui fournit la bibliothèque.
+- artifactId : le nom de la bibliothèque.
+- version : la version que nous souhaitons utiliser.
+
+4. Le scope
+Tu as également cette dépendance :
+<dependency>
+    <groupId>org.junit.jupiter</groupId>
+    <artifactId>junit-jupiter</artifactId>
+    <version>5.13.4</version>
+    <scope>test</scope>
+</dependency>
+
+Le mot scope définit dans quel contexte une dépendance est utilisée.
+
+Par exemple :
+Scope	Utilisation
+compile	Disponible pour compiler et exécuter l'application
+test	Disponible pour compiler et exécuter les tests
+runtime	Nécessaire à l'exécution, mais pas à la compilation
+
+Ici, JUnit est utilisé uniquement pour les tests.
+
+5. Le build et les plugins
+Dans notre pom.xml, nous avons ajouté :
+<build>
+    <plugins>
+        <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <version>3.5.0</version>
+        </plugin>
+    </plugins>
+</build>
+
+
+Un plugin Maven permet d'ajouter des fonctionnalités aux opérations de Maven.
+
+################################# Structure des dossiers #############################
+1. Pourquoi Maven impose-t-il une structure ?
+Si tu places tous ces fichiers dans un seul dossier, le projet devient rapidement difficile à organiser.
+
+Maven propose donc une structure standard que les développeurs Java utilisent généralement.
+2. Structure standard d’un projet Maven
+
+A. src/main/java
+C'est ici que nous plaçons le code Java principal de notre application.
+Par exemple :
+- Main.java : démarrage du serveur HTTP.
+- UsersHandler.java : réception des requêtes HTTP.
+- UserService.java : logique métier.
+- User.java : représentation d'un utilisateur.
+- UserDao.java : communication avec la base de données.
+À retenir : tout le code Java de notre application se trouve normalement dans src/main/java.
+
+B. src/main/resources
+Ce dossier contient les ressources nécessaires à l'application, mais qui ne sont pas des fichiers Java.
+
+Par exemple :
+- Fichiers de configuration.
+- Fichiers .properties.
+- Scripts SQL.
+- Fichiers JSON utilisés par l'application.
+C. src/test/java
+Ce dossier contient les classes Java destinées aux tests.
+
+Par exemple, nous pourrons tester notre méthode registerUser() sans démarrer obligatoirement tout le serveur HTTP.
+
+D. src/test/resources
+Ce dossier contient les ressources utilisées uniquement pendant les tests.
+E. target
+Ce dossier est généré automatiquement par Maven lorsqu'on exécute certaines commandes.
+
+Il contient notamment :
+- Les fichiers .class après compilation.
+- Les résultats des tests.
+- Le fichier .jar après packaging.
+Important : on ne place pas manuellement notre code source dans target. Maven s'occupe de ce dossier.
+
+##################################### le cycle de vie Maven (Maven Lifecycle). ##############################""""
+1. Qu'est-ce que le cycle de vie Maven ?
+Imagine que tu développes ton User Service.
+
+Pour obtenir une application prête à être distribuée, tu dois généralement :
+1. Nettoyer les anciens fichiers générés.
+2. Compiler ton code Java.
+3. Exécuter les tests.
+4. Créer un fichier JAR contenant ton application.
+Maven organise ces opérations dans un ensemble d'étapes appelées phases.
+
+2. Les principales commandes
+A. mvn clean
+Cette commande supprime le dossier target.
+Pourquoi ? Pour repartir d'une compilation propre, sans conserver les anciens fichiers générés.
+
+B. mvn compile
+Cette commande compile les fichiers Java situés dans src/main/java.
+Maven utilise le compilateur Java (javac) et place les fichiers compilés .class dans :target/classes/
+Attention : compiler ne signifie pas exécuter l'application.
+
+C. mvn test
+Cette commande :
+- Compile le code principal.
+- Compile le code des tests.
+- Exécute les tests disponibles.
+Les résultats des tests sont notamment enregistrés dans target/surefire-reports/ lorsque le plugin Surefire est configuré et utilisé.
+
+D. mvn package
+Cette commande exécute les étapes précédentes nécessaires, puis crée un fichier de distribution, généralement un JAR pour notre projet Java.
+Tu le trouveras dans :
+target/user-service-1.0-SNAPSHOT.jar
+Le nom dépend des valeurs définies dans ton pom.xml.
+
+3. Comprendre l'ordre d'exécution
+Voici le point le plus important : les phases Maven suivent un ordre.
+1. clean
+   Supprime les anciens fichiers générés.
+2. compile
+   Compile le code principal.
+3. test
+   Compile et exécute les tests.
+4. package
+   Crée le fichier JAR.
+
+Par exemple, lorsque tu exécutes :
+mvn package
+Maven ne fait pas uniquement le packaging. Il exécute aussi les phases précédentes du cycle de vie, notamment compile et test.
+En revanche, mvn compile ne lance pas les tests et ne crée pas le JAR.
