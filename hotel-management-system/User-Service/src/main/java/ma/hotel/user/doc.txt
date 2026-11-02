@@ -1,0 +1,22 @@
+1. Qu'est-ce qu'un HttpContext ?
+Un HttpContext est une association entre un chemin URL et un Handler.
+
+Par exemple, imaginons que notre User Service possède trois fonctionnalités :
+Chemin URL	            Handler
+/users	              UsersHandler
+/users/register	      RegisterUserHandler
+/users/login	      LoginHandler
+
+Le serveur doit savoir quel traitement utiliser selon le chemin demandé.
+
+C'est le rôle de createContext().
+
+exemple:  server.createContext("/users", new UsersHandler());
+                                    ^           ^
+                                    |           |
+                                    |           |
+                                    |           |______________
+le chemin URL auquel le serveur doit associer un traitement.   |
+                                                               |
+                                        l'objet qui va traiter les requêtes correspondantes.
+                                        

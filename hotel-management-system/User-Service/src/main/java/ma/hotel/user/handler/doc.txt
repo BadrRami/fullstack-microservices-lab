@@ -1,0 +1,135 @@
+Dans notre projet, le Handler est chargé de recevoir les requêtes HTTP envoyées par le client 
+et de gérer la communication entre le client et notre application Java. Par exemple, lorsqu’un 
+utilisateur souhaite se connecter, le `LoginHandler` reçoit la requête contenant son adresse 
+e-mail et son mot de passe, puis transmet ces informations au `UserService`. C’est le `UserService`
+qui vérifie si l’utilisateur existe et si son mot de passe est correct, car ces vérifications 
+font partie de la logique métier. Ensuite, le Handler récupère le résultat et prépare une réponse
+HTTP à envoyer au client. Ainsi, le Handler s’occupe de la communication HTTP, tandis que le
+Service s’occupe des traitements et des règles métier.
+
+1. Qu'est-ce que HttpHandler ?
+HttpHandler est une interface Java fournie par : com.sun.net.httpserver.HttpHandler
+Elle définit une méthode obligatoire : void handle(HttpExchange exchange) throws IOException;
+
+2. Comprendre les éléments de cette méthode
+public void handle(HttpExchange exchange) throws IOException
+
+- public : la méthode est accessible depuis les autres classes.
+- void : elle ne retourne directement aucune valeur.
+- handle : nom de la méthode.
+- HttpExchange : représente l'échange HTTP entre le client et le serveur.
+- exchange : objet qui permet de récupérer la requête et de construire la réponse.
+- throws IOException : indique que la méthode peut produire une erreur d'entrée/sortie.
+
+Avec HttpExchange, nous pourrons notamment :
+- Récupérer la méthode HTTP : GET, POST, PUT, DELETE...
+- Récupérer le chemin demandé.
+- Lire les données envoyées dans le body.
+- Définir le code de statut HTTP.
+- Envoyer une réponse au client.
+#######################################################################################
+getRequestMethod() : récupère la méthode HTTP.
+getRequestURI().getPath() : récupère le chemin.
+getRequestBody() : récupère les données envoyées dans le corps de la requête.
+
+
+####################    1. Définir le type de contenu de la réponse
+exchange.getResponseHeaders().set(
+    "Content-Type",
+    "application/json"
+);
+getResponseHeaders() : permet d'accéder aux en-têtes de la réponse HTTP.
+set() : permet d'ajouter un en-tête ou de modifier sa valeur.
+Content-Type : indique au client le type de contenu envoyé par le serveur.
+application/json : indique que la réponse est au format JSON.
+
+###################  2. Convertir la réponse en tableau de bytes
+String response = "{\"message\":\"Hello World\"}";
+
+byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
+
+String : contient notre réponse sous forme de texte.
+getBytes() : transforme le texte en tableau d'octets (byte[]).
+StandardCharsets.UTF_8 : définit l'encodage utilisé pour convertir le texte.
+
+################### 3. Envoyer le code HTTP et la taille de la réponse
+
+exchange.sendResponseHeaders(200, responseBytes.length);  Cette méthode permet de préparer l'envoi de la réponse HTTP.
+200 : le code HTTP qui indique que la requête a réussi.
+responseBytes.length : la taille du corps de la réponse en octets.
+
+################### 4. Récupérer le flux de sortie
+
+OutputStream output = exchange.getResponseBody();
+getResponseBody() permet de récupérer un objet OutputStream.
+Ce flux nous permet d'écrire les données que nous souhaitons envoyer au client.
+
+#################### 5. Écrire le contenu de la réponse
+output.write(responseBytes);
+
+write() : écrit les données dans le flux de sortie.
+responseBytes : contient notre réponse convertie en octets.
+
+#################### 6. Fermer le flux de sortie
+
+output.close();
+Cette instruction ferme le flux après l'écriture de la réponse.
+Elle permet de terminer proprement l'envoi des données et de libérer les ressources utilisées.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import java.io.IOException;
+import java.io.OutputStream;
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
+import java.nio.charset.StandardCharsets;
+
+public class WelcomeHandler implements HttpHandler {
+    @Override
+    public void handle(HttpExchange exchange) throws IOException{
+        String method = exchange.getRequestMethod();
+        
+            if(method.equalsIgnoreCase("GET")){
+                String response = "{\"message\":\"Hello World\"}";
+                byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
+                exchange.getResponseHeaders().set(
+                    "Content-Type", "application/json"
+                );
+                exchange.sendResponseHeaders(
+                    200, responseBytes.length
+                );
+                OutputStream output = exchange.getResponseBody();
+                output.write(responseBytes);
+                output.close();
+            }else{
+                 exchange.sendResponseHeaders(405, -1);
+exchange.close();
+            }
+        
+    }
+}
