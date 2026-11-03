@@ -17,7 +17,7 @@ public class Main {
         );
 
         // Définir la route GET /users
-        server.createContext("/users", new UsersHandler());
+        server.createContext("/users/register", new UsersHandler());
 
         // Démarrer le serveur
         server.start();

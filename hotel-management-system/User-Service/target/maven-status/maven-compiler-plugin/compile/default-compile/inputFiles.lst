@@ -1,5 +1,6 @@
 C:\Users\LENOVO\Desktop\fullstack-microservices-lab\hotel-management-system\User-Service\src\main\java\ma\hotel\user\dto\RegisterUserRequest.java
-C:\Users\LENOVO\Desktop\fullstack-microservices-lab\hotel-management-system\User-Service\src\main\java\ma\hotel\user\handler\WelcomeHandler.java
+C:\Users\LENOVO\Desktop\fullstack-microservices-lab\hotel-management-system\User-Service\src\main\java\ma\hotel\user\dto\UserResponse.java
+C:\Users\LENOVO\Desktop\fullstack-microservices-lab\hotel-management-system\User-Service\src\main\java\ma\hotel\user\handler\UsersHandler.java
 C:\Users\LENOVO\Desktop\fullstack-microservices-lab\hotel-management-system\User-Service\src\main\java\ma\hotel\user\Main.java
 C:\Users\LENOVO\Desktop\fullstack-microservices-lab\hotel-management-system\User-Service\src\main\java\ma\hotel\user\model\Role.java
 C:\Users\LENOVO\Desktop\fullstack-microservices-lab\hotel-management-system\User-Service\src\main\java\ma\hotel\user\model\User.java

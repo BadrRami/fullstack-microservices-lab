@@ -112,16 +112,22 @@ import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ma.hotel.user.dto.RegisterUserRequest;
+import ma.hotel.user.dto.UserResponse;
 import ma.hotel.user.model.User;
 import ma.hotel.user.service.UserService;
 public class UsersHandler implements HttpHandler{
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper =
+        new ObjectMapper().registerModule(new JavaTimeModule());
     private final UserService userService = new UserService();
     @Override 
     public void handle(HttpExchange exchange) throws IOException{
+         System.out.println(">>> UsersHandler a reçu une requête !");
         String method = exchange.getRequestMethod();
         if(!method.equalsIgnoreCase("POST")){
             exchange.sendResponseHeaders(405, -1); // Method Not Allowed
@@ -131,16 +137,30 @@ public class UsersHandler implements HttpHandler{
 
         try (InputStream input = exchange.getRequestBody()) {
 
-            RegisterUserRequest request =objectMapper.readValue(input, RegisterUserRequest.class);
-            
-            User user = userService.registerUser(
-                request.getFirstName(),
-                request.getLastName(),
-                request.getEmail(),
-                request.getPassword(),
-                request.getPhone()
-            );
+            System.out.println("1. Requête reçue");
 
+RegisterUserRequest request =
+    objectMapper.readValue(input, RegisterUserRequest.class);
+
+System.out.println("2. JSON converti en objet");
+
+User user = userService.registerUser(
+    request.getFirstName(),
+    request.getLastName(),
+    request.getEmail(),
+    request.getPassword(),
+    request.getPhone()
+);
+
+System.out.println("3. Utilisateur créé");
+
+UserResponse response = userService.toUserResponse(user);
+
+System.out.println("4. Conversion UserResponse terminée");
+
+String jsonResponse = objectMapper.writeValueAsString(response);
+
+System.out.println("5. Conversion JSON terminée");
         }
     }
 }
