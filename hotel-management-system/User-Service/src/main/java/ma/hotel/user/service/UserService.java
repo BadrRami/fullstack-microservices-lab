@@ -8,8 +8,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import ma.hotel.user.dto.UserResponse;
 import ma.hotel.user.model.Role;
 
+import ma.hotel.user.dto.UserResponse;
 public class UserService {
 
     private final List<User> users = new ArrayList<>();
@@ -103,5 +105,30 @@ public class UserService {
     users.add(user);
 
     return user;
+}
+public UserResponse toUserResponse(User user) {
+    UserResponse response = new UserResponse();
+
+response.setId(user.getId());
+response.setFirstName(user.getFirstName());
+response.setLastName(user.getLastName());
+response.setEmail(user.getEmail());
+response.setPhone(user.getPhone());
+response.setRole(user.getRole());
+response.setStatus(user.getStatus());
+response.setCreatedAt(user.getCreatedAt());
+
+return response;
+}
+public List<UserResponse> toUserResponseList(List<User> users) {
+
+    List<UserResponse> responses = new ArrayList<>();
+
+    for (User user : users) {
+        UserResponse response = toUserResponse(user);
+        responses.add(response);
+    }
+
+    return responses;
 }
 }

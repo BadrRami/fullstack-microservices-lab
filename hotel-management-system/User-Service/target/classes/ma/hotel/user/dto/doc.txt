@@ -1,0 +1,13 @@
+DTO signifie Data Transfer Object (objet de transfert de données).
+Son rôle est de transporter des données entre différentes parties de notre application, notamment 
+entre le client et notre serveur.
+
+Request DTO (RegisterUserRequest) : définit les informations que le client est autorisé à envoyer 
+pour s'inscrire.
+
+Response DTO (UserResponse) : définit les informations que notre application décide de retourner 
+au client.
+
+RegisterUserRequest : les informations nécessaires pour créer un compte.
+UserResponse : les informations nécessaires pour afficher le profil.
+
