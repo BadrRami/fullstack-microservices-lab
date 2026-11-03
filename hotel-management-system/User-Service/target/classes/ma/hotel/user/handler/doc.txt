@@ -77,6 +77,33 @@ Cette instruction ferme le flux après l'écriture de la réponse.
 Elle permet de terminer proprement l'envoi des données et de libérer les ressources utilisées.
 
 
+########################################### transformer des données en JSON et l'inverse
+Quel est le rôle de ObjectMapper ?
+ObjectMapper est une classe fournie par la bibliothèque Jackson. Son rôle est de faciliter la conversion entre les objets Java et les données JSON.
+Il possède principalement deux méthodes :
+
+A. writeValueAsString() : sérialisation
+Elle transforme un objet Java en chaîne de caractères JSON.
+exemple : String json = objectMapper.writeValueAsString(user);
+
+B. readValue() : désérialisation
+Elle transforme une chaîne JSON en objet Java.
+
+Exemple :
+RegisterUserRequest request = objectMapper.readValue(json, RegisterUserRequest.class);
+###############################################  Lire le Request Body avec Jackson
+Dans notre UsersHandler, nous récupérons le corps de la requête avec :
+InputStream input = exchange.getRequestBody();
+
+Voici le principe :
+ObjectMapper objectMapper = new ObjectMapper();
+
+RegisterUserRequest request = objectMapper.readValue(input, RegisterUserRequest.class);
+
+Explication :
+- input : contient le JSON envoyé par Postman.
+- RegisterUserRequest.class : indique à Jackson le type d'objet Java à créer.
+- request : contient les données converties en objet Java.
 
 
 
