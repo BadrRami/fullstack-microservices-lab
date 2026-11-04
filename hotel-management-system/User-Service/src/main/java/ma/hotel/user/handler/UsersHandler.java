@@ -115,15 +115,20 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ma.hotel.user.dto.RegisterUserRequest;
 import ma.hotel.user.dto.UserResponse;
 import ma.hotel.user.model.User;
 import ma.hotel.user.service.UserService;
+import java.util.Map;
+import java.util.HashMap;
+import com.fasterxml.jackson.databind.SerializationFeature;
 public class UsersHandler implements HttpHandler{
 
-    private final ObjectMapper objectMapper =
-        new ObjectMapper().registerModule(new JavaTimeModule());
+    private final ObjectMapper objectMapper = new ObjectMapper()
+    .registerModule(new JavaTimeModule())
+    .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     private final UserService userService = new UserService();
     @Override 
     public void handle(HttpExchange exchange) throws IOException{
@@ -139,28 +144,84 @@ public class UsersHandler implements HttpHandler{
 
             System.out.println("1. Requête reçue");
 
-RegisterUserRequest request =
-    objectMapper.readValue(input, RegisterUserRequest.class);
+            RegisterUserRequest request =
+                objectMapper.readValue(input, RegisterUserRequest.class);
 
-System.out.println("2. JSON converti en objet");
+            System.out.println("2. JSON converti en objet");
 
-User user = userService.registerUser(
-    request.getFirstName(),
-    request.getLastName(),
-    request.getEmail(),
-    request.getPassword(),
-    request.getPhone()
-);
+            User user = userService.registerUser(
+                request.getFirstName(),
+                request.getLastName(),
+                request.getEmail(),
+                request.getPassword(),
+                request.getPhone()
+            );
 
-System.out.println("3. Utilisateur créé");
+            System.out.println("3. Utilisateur créé");
 
-UserResponse response = userService.toUserResponse(user);
+            UserResponse response = userService.toUserResponse(user);
 
-System.out.println("4. Conversion UserResponse terminée");
+            System.out.println("4. Conversion UserResponse terminée");
 
-String jsonResponse = objectMapper.writeValueAsString(response);
+            String jsonResponse = objectMapper.writeValueAsString(response);
 
-System.out.println("5. Conversion JSON terminée");
+            System.out.println("5. Conversion JSON terminée");
+
+            byte[] responseBytes = jsonResponse.getBytes(StandardCharsets.UTF_8);
+
+            exchange.getResponseHeaders().set(
+                "Content-Type",
+                "application/json; charset=UTF-8"
+            );
+
+            exchange.sendResponseHeaders(201, responseBytes.length);
+
+            try (OutputStream output = exchange.getResponseBody()) {
+                output.write(responseBytes);
+            }
+
+            exchange.close();
+
+        }catch (JsonProcessingException e) {
+
+            sendError(exchange, 400, "JSON invalide");
+
+        } catch (IllegalArgumentException e) {
+
+            sendError(exchange, 400, e.getMessage());
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+            sendError(exchange, 500, "Erreur interne du serveur");
         }
+
+        
+    }
+
+    // 3. Méthode sendError()
+    private void sendError(
+        HttpExchange exchange,
+        int statusCode,
+        String message
+    ) throws IOException {
+
+        Map<String, String> error = new HashMap<>();
+        error.put("error", message);
+
+        byte[] responseBytes =
+            objectMapper.writeValueAsBytes(error);
+
+        exchange.getResponseHeaders().set(
+            "Content-Type",
+            "application/json; charset=UTF-8"
+        );
+
+        exchange.sendResponseHeaders(statusCode, responseBytes.length);
+
+        try (OutputStream output = exchange.getResponseBody()) {
+            output.write(responseBytes);
+        }
+        exchange.close();
     }
 }
