@@ -123,6 +123,8 @@ import ma.hotel.user.model.User;
 import ma.hotel.user.service.UserService;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
+
 import com.fasterxml.jackson.databind.SerializationFeature;
 public class UsersHandler implements HttpHandler{
 
@@ -130,17 +132,17 @@ public class UsersHandler implements HttpHandler{
     .registerModule(new JavaTimeModule())
     .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
     private final UserService userService = new UserService();
+
+
     @Override 
     public void handle(HttpExchange exchange) throws IOException{
-         System.out.println(">>> UsersHandler a reçu une requête !");
+        System.out.println(">>> UsersHandler a reçu une requête !");
         String method = exchange.getRequestMethod();
-        if(!method.equalsIgnoreCase("POST")){
-            exchange.sendResponseHeaders(405, -1); // Method Not Allowed
-            exchange.close();
-            return; // arrête immédiatement l'exécution de la méthode handle().
-        }
+        String path = exchange.getRequestURI().getPath();
 
-        try (InputStream input = exchange.getRequestBody()) {
+        switch(method){
+            case "POST":
+                try (InputStream input = exchange.getRequestBody()) {
 
             System.out.println("1. Requête reçue");
 
@@ -195,6 +197,25 @@ public class UsersHandler implements HttpHandler{
             e.printStackTrace();
             sendError(exchange, 500, "Erreur interne du serveur");
         }
+        
+            break;
+        case "GET":
+            if (path.matches("/users/\\d+")) {
+                handleGetUserById(exchange, path);
+            } else if (path.equals("/users")) {
+                handleGetUsers(exchange);
+            } else {
+                sendError(exchange, 404, "Route introuvable");
+            }
+            break;
+        default:
+            exchange.sendResponseHeaders(405, -1);
+            exchange.close();
+            break;
+        }
+        
+
+        
 
         
     }
@@ -218,6 +239,55 @@ public class UsersHandler implements HttpHandler{
         );
 
         exchange.sendResponseHeaders(statusCode, responseBytes.length);
+
+        try (OutputStream output = exchange.getResponseBody()) {
+            output.write(responseBytes);
+        }
+        exchange.close();
+    }
+
+    private void handleGetUsers(HttpExchange exchange) throws IOException {
+
+        List<UserResponse> users = userService.getAllUsers();
+
+        String jsonResponse = objectMapper.writeValueAsString(users);
+
+        byte[] responseBytes = jsonResponse.getBytes(StandardCharsets.UTF_8);
+
+        exchange.getResponseHeaders().set(
+            "Content-Type",
+            "application/json; charset=UTF-8"
+        );
+
+        exchange.sendResponseHeaders(200, responseBytes.length);
+
+        try (OutputStream output = exchange.getResponseBody()) {
+            output.write(responseBytes);
+        }
+
+        exchange.close();
+    }
+
+    private void handleGetUserById(HttpExchange exchange, String path)
+        throws IOException {
+        String[] parts = path.split("/");
+        String userId = parts[parts.length - 1];
+
+        Long id = Long.parseLong(userId);
+
+        UserResponse userResponse = userService.getUserById(id);
+
+        if (userResponse == null) {
+            sendError(exchange, 404, "Utilisateur non trouvé");
+            return;
+        }
+
+        byte[] responseBytes = objectMapper.writeValueAsBytes(userResponse);
+        exchange.getResponseHeaders().set(
+            "Content-Type",
+            "application/json; charset=UTF-8"
+        );
+        exchange.sendResponseHeaders(200, responseBytes.length);
 
         try (OutputStream output = exchange.getResponseBody()) {
             output.write(responseBytes);

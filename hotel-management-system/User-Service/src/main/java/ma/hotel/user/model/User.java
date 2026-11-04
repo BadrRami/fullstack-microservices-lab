@@ -11,11 +11,12 @@ public class User {
     private Role role;
     private UserStatus status;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     public User(){
 
     }
-    public User(Long id, String firstName, String lastName, String email, String password, String phone, Role role, UserStatus status, LocalDateTime createdAt){
+    public User(Long id, String firstName, String lastName, String email, String password, String phone, Role role, UserStatus status, LocalDateTime createdAt, LocalDateTime updatedAt){
         this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -25,6 +26,7 @@ public class User {
         this.role = role;
         this.status = status;
         this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
      // Getters et setters
@@ -88,5 +90,12 @@ public class User {
     }
     public void setCreatedAt(LocalDateTime createdAt){
         this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt(){
+        return updatedAt;
+    }
+    public void setUpdatedAt(LocalDateTime updatedAt){
+        this.updatedAt = updatedAt;
     }
 }

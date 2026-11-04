@@ -10,21 +10,30 @@ import java.util.regex.Pattern;
 
 import ma.hotel.user.dto.UserResponse;
 import ma.hotel.user.model.Role;
-
+import ma.hotel.user.dto.RegisterUserRequest;
 import ma.hotel.user.dto.UserResponse;
+
+
 public class UserService {
 
     private final List<User> users = new ArrayList<>();
 
-    public List<User> getAllUsers() {
-        return users;
+    // public List<User> getAllUsers() {
+    //     return users;
+    // }
+    
+
+    public List<UserResponse> getAllUsers() {
+        return toUserResponseList(users);
     }
 
-    public User getUserById(Long id) {
+
+
+    public UserResponse getUserById(Long id) {
 
         for (User user : users) {
             if (user.getId().equals(id)) {
-                return user;
+                return toUserResponse(user);
             }
         }
 
@@ -98,7 +107,8 @@ public class UserService {
             phone.trim(),
             Role.CLIENT,
             UserStatus.ACTIVE,
-            LocalDateTime.now()
+            LocalDateTime.now(),
+            null // updatedAt initialisé à null
     );
 
     // 7. Ajouter l'utilisateur à la liste
@@ -120,6 +130,7 @@ response.setCreatedAt(user.getCreatedAt());
 
 return response;
 }
+
 public List<UserResponse> toUserResponseList(List<User> users) {
 
     List<UserResponse> responses = new ArrayList<>();

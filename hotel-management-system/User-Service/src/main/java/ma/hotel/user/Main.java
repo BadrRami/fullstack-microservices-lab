@@ -16,8 +16,8 @@ public class Main {
                 new InetSocketAddress(8081), 0
         );
 
-        // Définir la route GET /users
-        server.createContext("/users/register", new UsersHandler());
+        // Définir la route POST /users
+        server.createContext("/users", new UsersHandler());
 
         // Démarrer le serveur
         server.start();
