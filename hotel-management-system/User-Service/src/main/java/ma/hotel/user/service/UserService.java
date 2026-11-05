@@ -10,8 +10,8 @@ import java.util.regex.Pattern;
 
 import ma.hotel.user.dto.UserResponse;
 import ma.hotel.user.model.Role;
-import ma.hotel.user.dto.RegisterUserRequest;
-import ma.hotel.user.dto.UserResponse;
+import ma.hotel.user.dto.UpdateUserRequest;
+
 
 
 public class UserService {
@@ -127,6 +127,7 @@ response.setPhone(user.getPhone());
 response.setRole(user.getRole());
 response.setStatus(user.getStatus());
 response.setCreatedAt(user.getCreatedAt());
+response.setUpdatedAt(user.getUpdatedAt());
 
 return response;
 }
@@ -141,5 +142,127 @@ public List<UserResponse> toUserResponseList(List<User> users) {
     }
 
     return responses;
+}
+
+private boolean emailExistsForAnotherUser(String email, Long userId) {
+    for (User user : users) {
+        if (user.getEmail().equalsIgnoreCase(email)
+                && !user.getId().equals(userId)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+public UserResponse updateUser(Long id, UpdateUserRequest request) {
+
+    if (request == null) {
+        throw new IllegalArgumentException("Les données de modification sont obligatoires.");
+    }
+
+    // Rechercher l'utilisateur
+    for (User user : users) {
+        if (user.getId().equals(id)) {
+
+            // 1. Vérifier le prénom
+            if (request.getFirstName() == null || request.getFirstName().isBlank()) {
+                throw new IllegalArgumentException("Le prénom est obligatoire.");
+            }
+
+            // 2. Vérifier le nom
+            if (request.getLastName() == null || request.getLastName().isBlank()) {
+                throw new IllegalArgumentException("Le nom est obligatoire.");
+            }
+
+            // 3. Vérifier l'email
+            if (request.getEmail() == null || request.getEmail().isBlank()) {
+                throw new IllegalArgumentException("L'email est obligatoire.");
+            }
+
+            // 4. Vérifier le format de l'email
+            String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
+
+            if (!Pattern.matches(emailRegex, request.getEmail())) {
+                throw new IllegalArgumentException("Format d'email invalide.");
+            }
+
+            // 5. Vérifier si l'email appartient à un autre utilisateur
+            if (emailExistsForAnotherUser(request.getEmail(), id)) {
+                throw new IllegalArgumentException("Cette adresse email est déjà utilisée.");
+            }
+
+            // 6. Vérifier le téléphone
+            if (request.getPhone() == null || request.getPhone().isBlank()) {
+                throw new IllegalArgumentException("Le numéro de téléphone est obligatoire.");
+            }
+
+            // 7. Modifier les propriétés autorisées
+            user.setFirstName(request.getFirstName().trim());
+            user.setLastName(request.getLastName().trim());
+            user.setEmail(request.getEmail().trim().toLowerCase());
+            user.setPhone(request.getPhone().trim());
+
+            // 8. Actualiser updatedAt
+            user.setUpdatedAt(LocalDateTime.now());
+
+            // 9. Retourner UserResponse
+            return toUserResponse(user);
+        }
+    }
+
+    // Utilisateur introuvable
+    throw new IllegalArgumentException("Utilisateur non trouvé.");
+}
+public void deactivateUser(Long id) {
+
+    for (User user : users) {
+
+        if (user.getId().equals(id)) {
+
+            if (user.getStatus() == UserStatus.BLOCKED) {
+                throw new IllegalArgumentException(
+                    "Ce compte est bloqué et ne peut pas être désactivé par son propriétaire."
+                );
+            }
+
+            user.setStatus(UserStatus.INACTIVE);
+            user.setUpdatedAt(LocalDateTime.now());
+
+            return;
+        }
+    }
+
+    throw new IllegalArgumentException("Utilisateur non trouvé.");
+
+}
+public void activateUser(String email, String password) {
+
+    for (User user : users) {
+
+        if (user.getEmail().equalsIgnoreCase(email)
+                && user.getPassword().equals(password)) {
+
+            if (user.getStatus() == UserStatus.BLOCKED) {
+                throw new IllegalArgumentException(
+                    "Ce compte est bloqué et ne peut pas être activé."
+                );
+            }
+
+            if (user.getStatus() == UserStatus.ACTIVE) {
+                throw new IllegalArgumentException(
+                    "Ce compte est déjà actif."
+                );
+            }
+
+            user.setStatus(UserStatus.ACTIVE);
+            user.setUpdatedAt(LocalDateTime.now());
+
+            return;
+        }
+    }
+
+    throw new IllegalArgumentException(
+        "Email ou mot de passe incorrect."
+    );
 }
 }

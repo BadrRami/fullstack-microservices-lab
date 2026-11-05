@@ -124,8 +124,9 @@ import ma.hotel.user.service.UserService;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
-
+import ma.hotel.user.dto.UpdateUserRequest;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import ma.hotel.user.dto.ReactivateUserRequest;
 public class UsersHandler implements HttpHandler{
 
     private final ObjectMapper objectMapper = new ObjectMapper()
@@ -142,7 +143,87 @@ public class UsersHandler implements HttpHandler{
 
         switch(method){
             case "POST":
-                try (InputStream input = exchange.getRequestBody()) {
+                if (path.equals("/users/register")) {
+
+                    // Traitement de l'inscription
+                    handleRegisterUser(exchange);
+                } else if (path.equals("/users/reactivate")) {
+
+                    // Traitement de la réactivation
+                    handleReactivateUser(exchange);
+
+                } else {
+
+                    sendError(exchange, 404, "Route introuvable");
+
+                }
+        
+            break;
+        case "GET":
+            if (path.matches("/users/\\d+")) {
+                handleGetUserById(exchange, path);
+            } else if (path.equals("/users")) {
+                handleGetUsers(exchange);
+            } else {
+                sendError(exchange, 404, "Route introuvable");
+            }
+            break;
+        case "PUT":
+            if(path.matches("/users/\\d+")){
+                handleUpdateUser(exchange, path);
+            }else{
+                sendError(exchange, 404, "Route introuvable");
+            }
+            break;
+        case "DELETE":
+            if (path.matches("/users/\\d+")) {
+                handleDeleteUser(exchange, path);
+            } else {
+                sendError(exchange, 404, "Route introuvable");
+            }
+            break;
+        default:
+            exchange.sendResponseHeaders(405, -1);
+            exchange.close();
+            break;
+        }
+        
+
+        
+
+        
+    }
+
+    // 3. Méthode sendError()
+    private void sendError(
+        HttpExchange exchange,
+        int statusCode,
+        String message
+    ) throws IOException {
+
+        Map<String, String> error = new HashMap<>();
+        error.put("error", message);
+
+        byte[] responseBytes =
+            objectMapper.writeValueAsBytes(error);
+
+        exchange.getResponseHeaders().set(
+            "Content-Type",
+            "application/json; charset=UTF-8"
+        );
+
+        exchange.sendResponseHeaders(statusCode, responseBytes.length);
+
+        try (OutputStream output = exchange.getResponseBody()) {
+            output.write(responseBytes);
+        }
+        exchange.close();
+    }
+
+    private void handleRegisterUser(HttpExchange exchange)
+        throws IOException {
+        // Ton code actuel d'inscription
+        try (InputStream input = exchange.getRequestBody()) {
 
             System.out.println("1. Requête reçue");
 
@@ -197,55 +278,8 @@ public class UsersHandler implements HttpHandler{
             e.printStackTrace();
             sendError(exchange, 500, "Erreur interne du serveur");
         }
-        
-            break;
-        case "GET":
-            if (path.matches("/users/\\d+")) {
-                handleGetUserById(exchange, path);
-            } else if (path.equals("/users")) {
-                handleGetUsers(exchange);
-            } else {
-                sendError(exchange, 404, "Route introuvable");
-            }
-            break;
-        default:
-            exchange.sendResponseHeaders(405, -1);
-            exchange.close();
-            break;
-        }
-        
 
-        
-
-        
     }
-
-    // 3. Méthode sendError()
-    private void sendError(
-        HttpExchange exchange,
-        int statusCode,
-        String message
-    ) throws IOException {
-
-        Map<String, String> error = new HashMap<>();
-        error.put("error", message);
-
-        byte[] responseBytes =
-            objectMapper.writeValueAsBytes(error);
-
-        exchange.getResponseHeaders().set(
-            "Content-Type",
-            "application/json; charset=UTF-8"
-        );
-
-        exchange.sendResponseHeaders(statusCode, responseBytes.length);
-
-        try (OutputStream output = exchange.getResponseBody()) {
-            output.write(responseBytes);
-        }
-        exchange.close();
-    }
-
     private void handleGetUsers(HttpExchange exchange) throws IOException {
 
         List<UserResponse> users = userService.getAllUsers();
@@ -294,4 +328,153 @@ public class UsersHandler implements HttpHandler{
         }
         exchange.close();
     }
+
+    private void handleUpdateUser(HttpExchange exchange, String path)
+        throws IOException {
+
+        try {
+            // 1. Récupérer l'ID depuis l'URL
+            String[] parts = path.split("/");
+            String userId = parts[parts.length - 1];
+            Long id = Long.parseLong(userId);
+
+            // 2. Lire le JSON et le convertir en UpdateUserRequest
+            try (InputStream input = exchange.getRequestBody()) {
+
+                UpdateUserRequest request =
+                    objectMapper.readValue(input, UpdateUserRequest.class);
+
+                // 3. Appeler le service pour modifier l'utilisateur
+                UserResponse response =
+                    userService.updateUser(id, request);
+
+                // 4. Convertir UserResponse en JSON
+                byte[] responseBytes =
+                    objectMapper.writeValueAsBytes(response);
+
+                // 5. Définir le Content-Type
+                exchange.getResponseHeaders().set(
+                    "Content-Type",
+                    "application/json; charset=UTF-8"
+                );
+
+                // 6. Envoyer le statut HTTP 200
+                exchange.sendResponseHeaders(200, responseBytes.length);
+
+                // 7. Envoyer le JSON au client
+                try (OutputStream output = exchange.getResponseBody()) {
+                    output.write(responseBytes);
+                }
+            }
+
+            exchange.close();
+
+        } catch (JsonProcessingException e) {
+
+            sendError(exchange, 400, "JSON invalide");
+
+        } catch (IllegalArgumentException e) {
+
+            if ("Utilisateur non trouvé.".equals(e.getMessage())) {
+                sendError(exchange, 404, e.getMessage());
+            } else {
+                sendError(exchange, 400, e.getMessage());
+            }
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+            sendError(exchange, 500, "Erreur interne du serveur");
+        }
+    }
+
+    private void handleDeleteUser(HttpExchange exchange, String path)
+        throws IOException {
+
+        try {
+            String[] parts = path.split("/");
+            String userId = parts[parts.length - 1];
+
+            Long id = Long.parseLong(userId);
+
+            userService.deactivateUser(id);
+
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Compte désactivé avec succès.");
+
+            byte[] responseBytes = objectMapper.writeValueAsBytes(response);
+
+            exchange.getResponseHeaders().set(
+                "Content-Type",
+                "application/json; charset=UTF-8"
+            );
+
+            exchange.sendResponseHeaders(200, responseBytes.length);
+
+            try (OutputStream output = exchange.getResponseBody()) {
+                output.write(responseBytes);
+            }
+
+            exchange.close();
+
+        } catch (IllegalArgumentException e) {
+
+            if ("Utilisateur non trouvé.".equals(e.getMessage())) {
+                sendError(exchange, 404, e.getMessage());
+            } else {
+                sendError(exchange, 400, e.getMessage());
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            sendError(exchange, 500, "Erreur interne du serveur");
+        }
+    }
+
+    private void handleReactivateUser(HttpExchange exchange)
+        throws IOException {
+
+    try (InputStream input = exchange.getRequestBody()) {
+
+        ReactivateUserRequest request =
+            objectMapper.readValue(input, ReactivateUserRequest.class);
+
+        userService.activateUser(
+            request.getEmail(),
+            request.getPassword()
+        );
+
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Compte réactivé avec succès.");
+
+        byte[] responseBytes =
+            objectMapper.writeValueAsBytes(response);
+
+        exchange.getResponseHeaders().set(
+            "Content-Type",
+            "application/json; charset=UTF-8"
+        );
+
+        exchange.sendResponseHeaders(200, responseBytes.length);
+
+        try (OutputStream output = exchange.getResponseBody()) {
+            output.write(responseBytes);
+        }
+
+    } catch (JsonProcessingException e) {
+
+        sendError(exchange, 400, "JSON invalide");
+
+    } catch (IllegalArgumentException e) {
+
+        sendError(exchange, 400, e.getMessage());
+
+    } catch (Exception e) {
+
+        e.printStackTrace();
+        sendError(exchange, 500, "Erreur interne du serveur");
+    }
+
+    exchange.close();
+}
 }
