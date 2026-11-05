@@ -12,22 +12,13 @@ import ma.hotel.user.dto.UserResponse;
 import ma.hotel.user.model.Role;
 import ma.hotel.user.dto.UpdateUserRequest;
 
-
-
 public class UserService {
 
     private final List<User> users = new ArrayList<>();
 
-    // public List<User> getAllUsers() {
-    //     return users;
-    // }
-    
-
     public List<UserResponse> getAllUsers() {
         return toUserResponseList(users);
     }
-
-
 
     public UserResponse getUserById(Long id) {
 
