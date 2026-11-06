@@ -12,9 +12,12 @@ import ma.hotel.user.dto.UserResponse;
 import ma.hotel.user.model.Role;
 import ma.hotel.user.dto.UpdateUserRequest;
 import ma.hotel.user.dao.UserDAO;
+
+import ma.hotel.user.security.PasswordEncoder;
 public class UserService {
 
     private final UserDAO userDAO = new UserDAO();
+    private final PasswordEncoder passwordEncoder = new PasswordEncoder();
 
     public List<UserResponse> getAllUsers() {
         List<User> users = userDAO.findAll();
@@ -36,101 +39,96 @@ public class UserService {
         return userDAO.existsByEmail(email);
     }
 
-    public User registerUser(
-        String firstName,
-        String lastName,
-        String email,
-        String password,
-        String phone
-) {
+    public User registerUser(String firstName,String lastName,String email,
+        String password,String phone) {
 
-    // 1. Vérifier les champs obligatoires
-    if (firstName == null || firstName.isBlank()
-            || lastName == null || lastName.isBlank()
-            || email == null || email.isBlank()
-            || password == null || password.isBlank()
-            || phone == null || phone.isBlank()) {
+        // 1. Vérifier les champs obligatoires
+        if (firstName == null || firstName.isBlank()
+                || lastName == null || lastName.isBlank()
+                || email == null || email.isBlank()
+                || password == null || password.isBlank()
+                || phone == null || phone.isBlank()) {
 
-        throw new IllegalArgumentException(
-                "Tous les champs sont obligatoires."
+            throw new IllegalArgumentException(
+                    "Tous les champs sont obligatoires."
+            );
+        }
+
+        // 2. Vérifier le format de l'email
+        String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
+
+        if (!Pattern.matches(emailRegex, email)) {
+            throw new IllegalArgumentException(
+                    "Format d'email invalide."
+            );
+        }
+
+        // 3. Vérifier si l'email existe déjà
+        if (emailExists(email)) {
+            throw new IllegalArgumentException(
+                    "Cette adresse email est déjà utilisée."
+            );
+        }
+
+        // 4. Vérifier la longueur du mot de passe
+        if (password.length() < 8) {
+            throw new IllegalArgumentException(
+                    "Le mot de passe doit contenir au moins 8 caractères."
+            );
+        }
+
+        // 5. L'ID sera généré automatiquement par PostgreSQL
+
+        // 6. Créer l'utilisateur
+        User user = new User(
+                null, // id généré automatiquement
+                firstName.trim(),
+                lastName.trim(),
+                email.trim().toLowerCase(),
+                passwordEncoder.encode(password), // Hasher le mot de passe
+                phone.trim(),
+                Role.CLIENT,
+                UserStatus.ACTIVE,
+                LocalDateTime.now(),
+                null // updatedAt initialisé à null
         );
+
+        // 7. Enregistrer l'utilisateur dans PostgreSQL
+        userDAO.save(user);
+
+        return user;
+    }
+    public UserResponse toUserResponse(User user) {
+        UserResponse response = new UserResponse();
+
+        response.setId(user.getId());
+        response.setFirstName(user.getFirstName());
+        response.setLastName(user.getLastName());
+        response.setEmail(user.getEmail());
+        response.setPhone(user.getPhone());
+        response.setRole(user.getRole());
+        response.setStatus(user.getStatus());
+        response.setCreatedAt(user.getCreatedAt());
+        response.setUpdatedAt(user.getUpdatedAt());
+
+        return response;
     }
 
-    // 2. Vérifier le format de l'email
-    String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
+    public List<UserResponse> toUserResponseList(List<User> users) {
 
-    if (!Pattern.matches(emailRegex, email)) {
-        throw new IllegalArgumentException(
-                "Format d'email invalide."
-        );
+        List<UserResponse> responses = new ArrayList<>();
+
+        for (User user : users) {
+            UserResponse response = toUserResponse(user);
+            responses.add(response);
+        }
+
+        return responses;
     }
 
-    // 3. Vérifier si l'email existe déjà
-    if (emailExists(email)) {
-        throw new IllegalArgumentException(
-                "Cette adresse email est déjà utilisée."
-        );
+    private boolean emailExistsForAnotherUser(String email, Long userId) {
+        return userDAO.existsByEmailAndIdNot(email, userId);
     }
-
-    // 4. Vérifier la longueur du mot de passe
-    if (password.length() < 8) {
-        throw new IllegalArgumentException(
-                "Le mot de passe doit contenir au moins 8 caractères."
-        );
-    }
-
-    // 5. L'ID sera généré automatiquement par PostgreSQL
-
-    // 6. Créer l'utilisateur
-    User user = new User(
-            null, // id généré automatiquement
-            firstName.trim(),
-            lastName.trim(),
-            email.trim().toLowerCase(),
-            password,
-            phone.trim(),
-            Role.CLIENT,
-            UserStatus.ACTIVE,
-            LocalDateTime.now(),
-            null // updatedAt initialisé à null
-    );
-
-    // 7. Enregistrer l'utilisateur dans PostgreSQL
-    userDAO.save(user);
-
-    return user;
-}
-public UserResponse toUserResponse(User user) {
-    UserResponse response = new UserResponse();
-
-response.setId(user.getId());
-response.setFirstName(user.getFirstName());
-response.setLastName(user.getLastName());
-response.setEmail(user.getEmail());
-response.setPhone(user.getPhone());
-response.setRole(user.getRole());
-response.setStatus(user.getStatus());
-response.setCreatedAt(user.getCreatedAt());
-response.setUpdatedAt(user.getUpdatedAt());
-
-return response;
-}
-
-public List<UserResponse> toUserResponseList(List<User> users) {
-
-    List<UserResponse> responses = new ArrayList<>();
-
-    for (User user : users) {
-        UserResponse response = toUserResponse(user);
-        responses.add(response);
-    }
-
-    return responses;
-}
-
-private boolean emailExistsForAnotherUser(String email, Long userId) {
-    return userDAO.existsByEmailAndIdNot(email, userId);
-}
 
 public UserResponse updateUser(Long id, UpdateUserRequest request) {
 
@@ -221,7 +219,13 @@ public void activateUser(String email, String password) {
 
     User user = userDAO.findByEmail(email);
 
-    if (user == null || !user.getPassword().equals(password)) {
+    if (user == null || !passwordEncoder.matches(password, user.getPassword())) {
+        throw new IllegalArgumentException(
+            "Email ou mot de passe incorrect."
+        );
+    }
+    if (email == null || email.isBlank()
+        || password == null || password.isEmpty()) {
         throw new IllegalArgumentException(
             "Email ou mot de passe incorrect."
         );

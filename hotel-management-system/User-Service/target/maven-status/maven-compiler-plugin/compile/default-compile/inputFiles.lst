@@ -10,5 +10,6 @@ C:\Users\LENOVO\Desktop\fullstack-microservices-lab\hotel-management-system\User
 C:\Users\LENOVO\Desktop\fullstack-microservices-lab\hotel-management-system\User-Service\src\main\java\ma\hotel\user\model\Role.java
 C:\Users\LENOVO\Desktop\fullstack-microservices-lab\hotel-management-system\User-Service\src\main\java\ma\hotel\user\model\User.java
 C:\Users\LENOVO\Desktop\fullstack-microservices-lab\hotel-management-system\User-Service\src\main\java\ma\hotel\user\model\UserStatus.java
+C:\Users\LENOVO\Desktop\fullstack-microservices-lab\hotel-management-system\User-Service\src\main\java\ma\hotel\user\security\PasswordEncoder.java
 C:\Users\LENOVO\Desktop\fullstack-microservices-lab\hotel-management-system\User-Service\src\main\java\ma\hotel\user\service\UserService.java
 C:\Users\LENOVO\Desktop\fullstack-microservices-lab\hotel-management-system\User-Service\src\main\java\ma\hotel\user\UserDAOTest.java
