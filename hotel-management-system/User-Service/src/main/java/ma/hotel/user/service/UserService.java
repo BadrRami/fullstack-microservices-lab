@@ -11,35 +11,29 @@ import java.util.regex.Pattern;
 import ma.hotel.user.dto.UserResponse;
 import ma.hotel.user.model.Role;
 import ma.hotel.user.dto.UpdateUserRequest;
-
+import ma.hotel.user.dao.UserDAO;
 public class UserService {
 
-    private final List<User> users = new ArrayList<>();
+    private final UserDAO userDAO = new UserDAO();
 
     public List<UserResponse> getAllUsers() {
+        List<User> users = userDAO.findAll();
         return toUserResponseList(users);
     }
 
     public UserResponse getUserById(Long id) {
 
-        for (User user : users) {
-            if (user.getId().equals(id)) {
-                return toUserResponse(user);
-            }
+        User user = userDAO.findById(id);
+
+        if (user == null) {
+            return null;
         }
 
-        return null;
+        return toUserResponse(user);
     }
 
     public boolean emailExists(String email) {
-
-        for (User user : users) {
-            if (user.getEmail().equalsIgnoreCase(email)) {
-                return true;
-            }
-        }
-
-        return false;
+        return userDAO.existsByEmail(email);
     }
 
     public User registerUser(
@@ -85,12 +79,11 @@ public class UserService {
         );
     }
 
-    // 5. Générer un nouvel ID
-    Long id = users.size() + 1L;
+    // 5. L'ID sera généré automatiquement par PostgreSQL
 
     // 6. Créer l'utilisateur
     User user = new User(
-            id,
+            null, // id généré automatiquement
             firstName.trim(),
             lastName.trim(),
             email.trim().toLowerCase(),
@@ -102,8 +95,8 @@ public class UserService {
             null // updatedAt initialisé à null
     );
 
-    // 7. Ajouter l'utilisateur à la liste
-    users.add(user);
+    // 7. Enregistrer l'utilisateur dans PostgreSQL
+    userDAO.save(user);
 
     return user;
 }
@@ -136,13 +129,7 @@ public List<UserResponse> toUserResponseList(List<User> users) {
 }
 
 private boolean emailExistsForAnotherUser(String email, Long userId) {
-    for (User user : users) {
-        if (user.getEmail().equalsIgnoreCase(email)
-                && !user.getId().equals(userId)) {
-            return true;
-        }
-    }
-    return false;
+    return userDAO.existsByEmailAndIdNot(email, userId);
 }
 
 public UserResponse updateUser(Long id, UpdateUserRequest request) {
@@ -151,109 +138,119 @@ public UserResponse updateUser(Long id, UpdateUserRequest request) {
         throw new IllegalArgumentException("Les données de modification sont obligatoires.");
     }
 
-    // Rechercher l'utilisateur
-    for (User user : users) {
-        if (user.getId().equals(id)) {
-
-            // 1. Vérifier le prénom
-            if (request.getFirstName() == null || request.getFirstName().isBlank()) {
-                throw new IllegalArgumentException("Le prénom est obligatoire.");
-            }
-
-            // 2. Vérifier le nom
-            if (request.getLastName() == null || request.getLastName().isBlank()) {
-                throw new IllegalArgumentException("Le nom est obligatoire.");
-            }
-
-            // 3. Vérifier l'email
-            if (request.getEmail() == null || request.getEmail().isBlank()) {
-                throw new IllegalArgumentException("L'email est obligatoire.");
-            }
-
-            // 4. Vérifier le format de l'email
-            String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
-
-            if (!Pattern.matches(emailRegex, request.getEmail())) {
-                throw new IllegalArgumentException("Format d'email invalide.");
-            }
-
-            // 5. Vérifier si l'email appartient à un autre utilisateur
-            if (emailExistsForAnotherUser(request.getEmail(), id)) {
-                throw new IllegalArgumentException("Cette adresse email est déjà utilisée.");
-            }
-
-            // 6. Vérifier le téléphone
-            if (request.getPhone() == null || request.getPhone().isBlank()) {
-                throw new IllegalArgumentException("Le numéro de téléphone est obligatoire.");
-            }
-
-            // 7. Modifier les propriétés autorisées
-            user.setFirstName(request.getFirstName().trim());
-            user.setLastName(request.getLastName().trim());
-            user.setEmail(request.getEmail().trim().toLowerCase());
-            user.setPhone(request.getPhone().trim());
-
-            // 8. Actualiser updatedAt
-            user.setUpdatedAt(LocalDateTime.now());
-
-            // 9. Retourner UserResponse
-            return toUserResponse(user);
-        }
+    User user = userDAO.findById(id);
+    if (user == null) {
+        throw new IllegalArgumentException("Utilisateur non trouvé.");
     }
 
-    // Utilisateur introuvable
-    throw new IllegalArgumentException("Utilisateur non trouvé.");
+    // 1. Vérifier le prénom
+    if (request.getFirstName() == null || request.getFirstName().isBlank()) {
+        throw new IllegalArgumentException("Le prénom est obligatoire.");
+    }
+
+    // 2. Vérifier le nom
+    if (request.getLastName() == null || request.getLastName().isBlank()) {
+        throw new IllegalArgumentException("Le nom est obligatoire.");
+    }
+
+    // 3. Vérifier l'email
+    if (request.getEmail() == null || request.getEmail().isBlank()) {
+        throw new IllegalArgumentException("L'email est obligatoire.");
+    }
+
+    // 4. Vérifier le format de l'email
+    String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
+
+    if (!Pattern.matches(emailRegex, request.getEmail())) {
+        throw new IllegalArgumentException("Format d'email invalide.");
+    }
+
+    // 5. Vérifier si l'email appartient à un autre utilisateur
+    if (emailExistsForAnotherUser(request.getEmail(), id)) {
+        throw new IllegalArgumentException("Cette adresse email est déjà utilisée.");
+    }
+
+    // 6. Vérifier le téléphone
+    if (request.getPhone() == null || request.getPhone().isBlank()) {
+        throw new IllegalArgumentException("Le numéro de téléphone est obligatoire.");
+    }
+
+    user.setFirstName(request.getFirstName().trim());
+    user.setLastName(request.getLastName().trim());
+    user.setEmail(request.getEmail().trim().toLowerCase());
+    user.setPhone(request.getPhone().trim());
+    user.setUpdatedAt(LocalDateTime.now());
+
+    // 7. Modifier les propriétés autorisées
+    if (!userDAO.update(user)) {
+        throw new IllegalArgumentException("Échec de la mise à jour de l'utilisateur.");
+    }
+
+    return toUserResponse(user);
+
 }
+
+
 public void deactivateUser(Long id) {
 
-    for (User user : users) {
+    User user = userDAO.findById(id);
 
-        if (user.getId().equals(id)) {
-
-            if (user.getStatus() == UserStatus.BLOCKED) {
-                throw new IllegalArgumentException(
-                    "Ce compte est bloqué et ne peut pas être désactivé par son propriétaire."
-                );
-            }
-
-            user.setStatus(UserStatus.INACTIVE);
-            user.setUpdatedAt(LocalDateTime.now());
-
-            return;
-        }
+    if (user == null) {
+        throw new IllegalArgumentException("Utilisateur non trouvé.");
     }
 
-    throw new IllegalArgumentException("Utilisateur non trouvé.");
+    if (user.getStatus() == UserStatus.BLOCKED) {
+        throw new IllegalArgumentException(
+            "Ce compte est bloqué et ne peut pas être désactivé par son propriétaire."
+        );
+    }
 
+    if (user.getStatus() == UserStatus.INACTIVE) {
+        throw new IllegalArgumentException(
+            "Ce compte est déjà inactif."
+        );
+    }
+
+    if (!userDAO.delete(id)) {
+        throw new IllegalArgumentException(
+            "Échec de la désactivation de l'utilisateur."
+        );
+    }
 }
 public void activateUser(String email, String password) {
 
-    for (User user : users) {
+    User user = userDAO.findByEmail(email);
 
-        if (user.getEmail().equalsIgnoreCase(email)
-                && user.getPassword().equals(password)) {
-
-            if (user.getStatus() == UserStatus.BLOCKED) {
-                throw new IllegalArgumentException(
-                    "Ce compte est bloqué et ne peut pas être activé."
-                );
-            }
-
-            if (user.getStatus() == UserStatus.ACTIVE) {
-                throw new IllegalArgumentException(
-                    "Ce compte est déjà actif."
-                );
-            }
-
-            user.setStatus(UserStatus.ACTIVE);
-            user.setUpdatedAt(LocalDateTime.now());
-
-            return;
-        }
+    if (user == null || !user.getPassword().equals(password)) {
+        throw new IllegalArgumentException(
+            "Email ou mot de passe incorrect."
+        );
     }
 
-    throw new IllegalArgumentException(
-        "Email ou mot de passe incorrect."
-    );
+    if (user.getStatus() == UserStatus.BLOCKED) {
+        throw new IllegalArgumentException(
+            "Ce compte est bloqué et ne peut pas être activé."
+        );
+    }
+
+    if (user.getStatus() == UserStatus.ACTIVE) {
+        throw new IllegalArgumentException(
+            "Ce compte est déjà actif."
+        );
+    }
+
+    user.setStatus(UserStatus.ACTIVE);
+    user.setUpdatedAt(LocalDateTime.now());
+
+    if (!userDAO.updateStatus(
+            user.getId(),
+            user.getStatus(),
+            user.getUpdatedAt()
+    )) {
+        throw new IllegalArgumentException(
+            "Échec de la réactivation du compte."
+        );
+    }
 }
+
 }

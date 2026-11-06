@@ -135,7 +135,11 @@ public class UserDAO {
     public boolean update(User user) {
         String sql = """
                 UPDATE users
-                SET first_name = ?, last_name = ?
+                SET first_name = ?,
+                    last_name = ?,
+                    email = ?,
+                    phone = ?,
+                    updated_at = ?
                 WHERE id = ?
                 """;
 
@@ -144,7 +148,10 @@ public class UserDAO {
 
             statement.setString(1, user.getFirstName());
             statement.setString(2, user.getLastName());
-            statement.setLong(3, user.getId());
+            statement.setString(3, user.getEmail());
+            statement.setString(4, user.getPhone());
+            statement.setObject(5, user.getUpdatedAt());
+            statement.setLong(6, user.getId());
 
             int rowsAffected = statement.executeUpdate();
             if (rowsAffected > 0) {
@@ -159,24 +166,149 @@ public class UserDAO {
     }
 
     public boolean delete(Long id) {
-    String sql = "UPDATE users SET status = 'INACTIVE', updated_at = ? WHERE id = ? AND status = 'ACTIVE'";
+        String sql = "UPDATE users SET status = 'INACTIVE', updated_at = ? WHERE id = ? AND status = 'ACTIVE'";
+
+        try (Connection connection = DatabaseConnection.getConnection();
+            PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setObject(1, LocalDateTime.now());
+            statement.setLong(2, id);
+
+            int rowsAffected = statement.executeUpdate();
+
+            return rowsAffected > 0;
+
+        } catch (SQLException e) {
+            throw new RuntimeException(
+                    "Erreur lors de la désactivation de l'utilisateur.", e
+            );
+        }
+    }
+
+    public boolean existsByEmail(String email) {
+        String sql = """
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM users
+                    WHERE LOWER(email) = LOWER(?)
+                )
+                """;
+
+        try (Connection connection = DatabaseConnection.getConnection();
+            PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, email);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return resultSet.getBoolean(1);
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException(
+                    "Erreur lors de la vérification de l'existence de l'email.", e
+            );
+        }
+
+        return false;
+    }
+
+    public boolean existsByEmailAndIdNot(String email, Long userId){
+        String sql = """
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM users
+                    WHERE LOWER(email) = LOWER(?)
+                    AND id <> ?
+                )
+                """;
+        try (Connection connection = DatabaseConnection.getConnection();
+            PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, email);
+            statement.setLong(2, userId);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return resultSet.getBoolean(1);
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException(
+                    "Erreur lors de la vérification de l'existence de l'email.", e
+            );
+        }
+
+        return false;
+    }
+    public User findByEmail(String email) {
+    String sql = """
+            SELECT *
+            FROM users
+            WHERE LOWER(email) = LOWER(?)
+            """;
 
     try (Connection connection = DatabaseConnection.getConnection();
          PreparedStatement statement = connection.prepareStatement(sql)) {
 
-        statement.setObject(1, LocalDateTime.now());
-        statement.setLong(2, id);
+        statement.setString(1, email);
+
+        try (ResultSet resultSet = statement.executeQuery()) {
+
+            if (resultSet.next()) {
+                User user = new User();
+
+                user.setId(resultSet.getLong("id"));
+                user.setFirstName(resultSet.getString("first_name"));
+                user.setLastName(resultSet.getString("last_name"));
+                user.setEmail(resultSet.getString("email"));
+                user.setPassword(resultSet.getString("password"));
+                user.setPhone(resultSet.getString("phone"));
+                user.setRole(Role.valueOf(resultSet.getString("role")));
+                user.setStatus(UserStatus.valueOf(resultSet.getString("status")));
+                user.setCreatedAt(resultSet.getObject("created_at", LocalDateTime.class));
+                user.setUpdatedAt(resultSet.getObject("updated_at", LocalDateTime.class));
+
+                return user;
+            }
+        }
+
+    } catch (SQLException e) {
+        throw new RuntimeException(
+                "Erreur lors de la récupération de l'utilisateur par email.", e
+        );
+    }
+
+    return null;
+}
+
+public boolean updateStatus(Long id, UserStatus status, LocalDateTime updatedAt) {
+
+    String sql = """
+            UPDATE users
+            SET status = ?, updated_at = ?
+            WHERE id = ?
+            """;
+
+    try (Connection connection = DatabaseConnection.getConnection();
+         PreparedStatement statement = connection.prepareStatement(sql)) {
+
+        statement.setString(1, status.name());
+        statement.setObject(2, updatedAt);
+        statement.setLong(3, id);
 
         int rowsAffected = statement.executeUpdate();
-
         return rowsAffected > 0;
 
     } catch (SQLException e) {
         throw new RuntimeException(
-                "Erreur lors de la désactivation de l'utilisateur.", e
+                "Erreur lors de la mise à jour du statut de l'utilisateur.", e
         );
     }
 }
+
 }
 
 /*

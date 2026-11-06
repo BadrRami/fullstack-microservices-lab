@@ -29,6 +29,8 @@ public class UsersHandler implements HttpHandler{
     @Override 
     public void handle(HttpExchange exchange) throws IOException{
         System.out.println(">>> UsersHandler a reçu une requête !");
+        System.out.println("Méthode : " + exchange.getRequestMethod());
+System.out.println("URI : " + exchange.getRequestURI());
         String method = exchange.getRequestMethod();
         String path = exchange.getRequestURI().getPath();
 
@@ -168,9 +170,16 @@ public class UsersHandler implements HttpHandler{
     }
     private void handleGetUsers(HttpExchange exchange) throws IOException {
 
+    try {
+        System.out.println("1. Début récupération des utilisateurs");
+
         List<UserResponse> users = userService.getAllUsers();
 
+        System.out.println("2. Utilisateurs récupérés : " + users.size());
+
         String jsonResponse = objectMapper.writeValueAsString(users);
+
+        System.out.println("3. Conversion JSON terminée");
 
         byte[] responseBytes = jsonResponse.getBytes(StandardCharsets.UTF_8);
 
@@ -181,12 +190,20 @@ public class UsersHandler implements HttpHandler{
 
         exchange.sendResponseHeaders(200, responseBytes.length);
 
+        System.out.println("4. Envoi de la réponse HTTP");
+
         try (OutputStream output = exchange.getResponseBody()) {
             output.write(responseBytes);
         }
 
-        exchange.close();
+        System.out.println("5. Réponse envoyée avec succès");
+
+    } catch (Exception e) {
+        e.printStackTrace();
+
+        sendError(exchange, 500, "Erreur lors de la récupération des utilisateurs");
     }
+}
 
     private void handleGetUserById(HttpExchange exchange, String path)
         throws IOException {
