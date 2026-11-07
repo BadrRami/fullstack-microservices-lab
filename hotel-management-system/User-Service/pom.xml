@@ -51,6 +51,14 @@
             <version>0.4</version>
         </dependency>
 
+        <!-- Mockito : simulation des dépendances pendant les tests -->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
+            <version>5.20.0</version>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
 <build>

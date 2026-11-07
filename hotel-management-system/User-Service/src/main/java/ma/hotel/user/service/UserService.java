@@ -16,8 +16,19 @@ import ma.hotel.user.dao.UserDAO;
 import ma.hotel.user.security.PasswordEncoder;
 public class UserService {
 
-    private final UserDAO userDAO = new UserDAO();
-    private final PasswordEncoder passwordEncoder = new PasswordEncoder();
+    private final UserDAO userDAO;
+private final PasswordEncoder passwordEncoder;
+
+// Constructeur utilisé par l'application
+public UserService() {
+    this(new UserDAO());
+}
+
+// Constructeur utilisé notamment pour les tests
+public UserService(UserDAO userDAO) {
+    this.userDAO = userDAO;
+    this.passwordEncoder = new PasswordEncoder();
+}
 
     public List<UserResponse> getAllUsers() {
         List<User> users = userDAO.findAll();
@@ -216,6 +227,12 @@ public void deactivateUser(Long id) {
     }
 }
 public void activateUser(String email, String password) {
+    if (email == null || email.isBlank()
+        || password == null || password.isEmpty()) {
+        throw new IllegalArgumentException(
+            "Email ou mot de passe incorrect."
+        );
+    }
 
     User user = userDAO.findByEmail(email);
 
@@ -224,12 +241,7 @@ public void activateUser(String email, String password) {
             "Email ou mot de passe incorrect."
         );
     }
-    if (email == null || email.isBlank()
-        || password == null || password.isEmpty()) {
-        throw new IllegalArgumentException(
-            "Email ou mot de passe incorrect."
-        );
-    }
+    
 
     if (user.getStatus() == UserStatus.BLOCKED) {
         throw new IllegalArgumentException(
