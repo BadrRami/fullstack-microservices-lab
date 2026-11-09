@@ -1,0 +1,41 @@
+1. Comprendre les bibliothèques de test
+Dans notre projet, nous utilisons principalement deux bibliothèques : JUnit 5 et Mockito.
+
+JUnit 5 : le framework de test
+JUnit nous permet de créer et d'exécuter des tests automatiquement.
+
+Les annotations et méthodes principales de JUnit :
+    Élément                     Rôle
+@Test               	Indique une méthode de test.
+@BeforeEach         	Exécute une préparation avant chaque test.
+@AfterEach          	Exécute un traitement après chaque test.
+assertEquals()      	Vérifie l'égalité de deux valeurs.
+assertNotNull()     	Vérifie qu'un objet n'est pas null.
+assertTrue()        	Vérifie qu'une condition est vraie.
+assertThrows()      	Vérifie qu'une exception est déclenchée.
+eq()                    Cela signifie que Mockito doit vérifier que le paramètre transmis est exactement UserStatus.ACTIVE.
+any()                   Cela signifie que nous acceptons n'importe quelle valeur
+
+Mockito : simuler les dépendances
+
+Mockito permet de créer un faux objet UserDAO, appelé Mock.parceque les testes doivent pas etre au 
+niveau de postgresql car nous voulons juste tester par des faux objets pour qu'il ne soit pas 
+les données etre enregistrer dans la base de donnée 
+
+@Mock
+private UserDAO userDAO; // Cette instruction crée un objet simulé.
+
+
+Mockito JUnit Jupiter
+Cette bibliothèque permet de faire fonctionner Mockito avec JUnit 5.
+@ExtendWith(MockitoExtension.class) Cette annotation connecte Mockito au cycle d'exécution de JUnit.
+
+
+Maven Surefire (maven-surefire-plugin , surefire-junit-platform)
+Ce sont des composants Maven utilisés pour découvrir et exécuter les tests.
+########################################################################################"
+
+2. Comprendre comment créer un test unitaire
+Un test unitaire consiste à vérifier le comportement d'une petite unité de code, généralement une méthode, 
+indépendamment de ses dépendances externes.
+
