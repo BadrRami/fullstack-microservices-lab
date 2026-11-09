@@ -194,4 +194,105 @@ class UserServiceTest {
         assertEquals(UserStatus.BLOCKED, user.getStatus());
         verify(userDAO, never()).updateStatus(any(Long.class), any(UserStatus.class), any(LocalDateTime.class));
     }
+    @Test
+    void shouldRejectIncorrectPassword() {
+
+        // Arrange
+        String email = "badr@example.com";
+        String correctPassword = "password123";
+        String incorrectPassword = "wrongPassword";
+
+        String hashedPassword = BCrypt.hashpw(
+                correctPassword,
+                BCrypt.gensalt()
+        );
+
+        User user = new User(
+                1L,
+                "Badr",
+                "Rami",
+                email,
+                hashedPassword,
+                "0612345678",
+                Role.CLIENT,
+                UserStatus.INACTIVE,
+                LocalDateTime.now(),
+                null
+        );
+
+        when(userDAO.findByEmail(email))
+                .thenReturn(user);
+
+        // Act & Assert
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> userService.activateUser(email, incorrectPassword)
+        );
+
+        // Vérifier que le compte reste inactif
+        assertEquals(UserStatus.INACTIVE, user.getStatus());
+
+        // Vérifier qu'aucune mise à jour n'a été effectuée
+        verify(userDAO, never()).updateStatus(
+                any(Long.class),
+                any(UserStatus.class),
+                any(LocalDateTime.class)
+        );
+
+}
+@Test
+void shouldRejectUnknownUser() {
+
+    // Arrange
+    String email = "unknown@example.com";
+    String password = "password123";
+
+    when(userDAO.findByEmail(email)).thenReturn(null);
+
+    // Act & Assert
+    assertThrows(
+            IllegalArgumentException.class,
+            () -> userService.activateUser(email, password)
+    );
+
+    // Verify
+    verify(userDAO, times(1)).findByEmail(email);
+}
+@Test
+void shouldRejectAlreadyActiveUser() {
+
+    // Arrange
+    String password = "password123";
+    String email = "badr@example.com";
+
+    User user = new User(
+            1L,
+            "Badr",
+            "Rami",
+            email,
+            BCrypt.hashpw(password, BCrypt.gensalt()),
+            "0612345678",
+            Role.CLIENT,
+            UserStatus.ACTIVE,
+            LocalDateTime.now(),
+            null
+    );
+
+    when(userDAO.findByEmail(email)).thenReturn(user);
+
+    // Act & Assert
+    assertThrows(
+            IllegalArgumentException.class,
+            () -> userService.activateUser(email, password)
+    );
+
+    // Verify
+    verify(userDAO, times(1)).findByEmail(email);
+
+    verify(userDAO, never()).updateStatus(
+            any(Long.class),
+            any(UserStatus.class),
+            any(LocalDateTime.class)
+    );
+}
 }

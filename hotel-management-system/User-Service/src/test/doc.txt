@@ -39,3 +39,22 @@ Ce sont des composants Maven utilisés pour découvrir et exécuter les tests.
 Un test unitaire consiste à vérifier le comportement d'une petite unité de code, généralement une méthode, 
 indépendamment de ses dépendances externes.
 
+
+JUnit 5 :
+- @Test : identifier une méthode de test.
+- @BeforeEach : préparer l'environnement avant chaque test.
+- assertNotNull() : vérifier qu'un objet existe.
+- assertEquals() : comparer deux valeurs.
+- assertTrue() : vérifier une condition.
+- assertNotEquals() : vérifier que deux valeurs sont différentes.
+- assertThrows() : vérifier qu'une exception est déclenchée.
+Mockito :
+- @Mock : créer un objet simulé.
+- @ExtendWith(MockitoExtension.class) : intégrer Mockito avec JUnit.
+- when().thenReturn() : simuler le résultat d'une méthode.
+- verify() : vérifier qu'une méthode a été appelée.
+- never() : vérifier qu'une méthode n'a jamais été appelée.
+- any() et eq() : définir les arguments attendus.
+Maven :
+- mvn clean test : nettoyer le dossier target, compiler le projet et exécuter les tests.
+- Maven Surefire : détecter et exécuter les tests.
