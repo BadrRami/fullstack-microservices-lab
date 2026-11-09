@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: ma.hotel.user.service.UserServiceTest
 -------------------------------------------------------------------------------
-Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.295 s -- in ma.hotel.user.service.UserServiceTest
+Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.640 s -- in ma.hotel.user.service.UserServiceTest

@@ -23,7 +23,20 @@ public class UsersHandler implements HttpHandler{
     private final ObjectMapper objectMapper = new ObjectMapper()
     .registerModule(new JavaTimeModule())
     .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-    private final UserService userService = new UserService();
+
+    //private final UserService userService = new UserService();
+
+    private final UserService userService;
+
+    // Constructeur utilisé par l'application
+    public UsersHandler() { // Il permet de conserver le fonctionnement actuel de ton application.
+        this(new UserService());
+    }
+
+    // Constructeur utilisé pour injecter une dépendance
+    public UsersHandler(UserService userService) { // Il nous permettra d'écrire dans les tests
+        this.userService = userService;
+    }
 
 
     @Override 
