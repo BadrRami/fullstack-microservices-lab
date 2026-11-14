@@ -44,6 +44,7 @@ JUnit 5 :
 - @Test : identifier une méthode de test.
 - @BeforeEach : préparer l'environnement avant chaque test.
 - assertNotNull() : vérifier qu'un objet existe.
+-assertNull(value):	La valeur est null
 - assertEquals() : comparer deux valeurs.
 - assertTrue() : vérifier une condition.
 - assertNotEquals() : vérifier que deux valeurs sont différentes.

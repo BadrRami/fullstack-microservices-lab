@@ -2,6 +2,7 @@ package ma.hotel.user.handler;
 
 import ma.hotel.user.service.UserService;
 import ma.hotel.user.model.User;
+import ma.hotel.user.dto.UpdateUserRequest;
 import ma.hotel.user.dto.UserResponse;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,6 +19,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -272,8 +274,6 @@ void shouldReturnUsersSuccessfully() throws IOException {
     when(exchange.getRequestURI())
             .thenReturn(URI.create("/users"));
 
-    
-    
 
     // 3. Préparer un utilisateur fictif
     UserResponse user = new UserResponse();
@@ -308,5 +308,215 @@ void shouldReturnUsersSuccessfully() throws IOException {
     assertTrue(response.contains("Badr"));
     assertTrue(response.contains("Rami"));
 }
+
+
+@Test
+void shouldReturnUserSuccessfully() throws IOException {
+
+    // 1. Simuler une requête HTTP GET
+    when(exchange.getRequestMethod()).thenReturn("GET");
+
+    when(exchange.getRequestURI())
+            .thenReturn(URI.create("/users/1"));
+
+    // 2. Préparer un utilisateur fictif
+    UserResponse user = new UserResponse();
+
+    user.setId(1L);
+    user.setFirstName("Badr");
+    user.setLastName("Rami");
+    user.setEmail("badr@example.com");
+    user.setPhone("0612345678");
+    user.setRole(Role.CLIENT);
+    user.setStatus(UserStatus.ACTIVE);
+
+    // 3. Simuler le comportement du UserService
+    when(userService.getUserById(1L)).thenReturn(user);
+
+    // 4. Exécuter le Handler
+    usersHandler.handle(exchange);
+
+    // 5. Vérifier que le service a été appelé
+    verify(userService, times(1)).getUserById(1L);
+
+    // 6. Vérifier le statut HTTP 200
+    verify(exchange).sendResponseHeaders(eq(200), anyLong());
+
+    // 7. Vérifier le contenu JSON
+    String response = responseBody.toString(StandardCharsets.UTF_8);
+
+    assertTrue(response.contains("badr@example.com"));
+    assertTrue(response.contains("Badr"));
+    assertTrue(response.contains("Rami"));
+}
+@Test
+void shouldReturn404WhenUserDoesNotExist() throws IOException {
+
+    when(exchange.getRequestMethod()).thenReturn("GET");
+    when(exchange.getRequestURI()).thenReturn(URI.create("/users/999"));
+
+    when(userService.getUserById(999L)).thenReturn(null);
+
+    usersHandler.handle(exchange);
+
+    verify(userService).getUserById(999L);
+    verify(exchange).sendResponseHeaders(eq(404), anyLong());
+
+    String response = responseBody.toString(StandardCharsets.UTF_8);
+
+    assertTrue(response.contains("Utilisateur non trouvé"));
+}
+
+
+@Test
+void shouldUpdateUserSuccessfully() throws IOException {
+
+    // 1. Préparer le JSON envoyé par le client
+    String jsonRequest = """
+        {
+            "firstName": "Badr",
+            "lastName": "Rami",
+            "email": "badr.updated@example.com",
+            "phone": "0612345678"
+        }
+        """;
+
+    // 2. Simuler la requête HTTP PUT
+    when(exchange.getRequestMethod()).thenReturn("PUT");
+    when(exchange.getRequestURI()).thenReturn(URI.create("/users/1"));
+
+    when(exchange.getRequestBody()).thenReturn(
+        new ByteArrayInputStream(
+            jsonRequest.getBytes(StandardCharsets.UTF_8)
+        )
+    );
+
+    // 3. Préparer la réponse simulée du service
+    UserResponse mockResponse = new UserResponse();
+    mockResponse.setId(1L);
+    mockResponse.setFirstName("Badr");
+    mockResponse.setLastName("Rami");
+    mockResponse.setEmail("badr.updated@example.com");
+    mockResponse.setPhone("0612345678");
+    mockResponse.setRole(Role.CLIENT);
+    mockResponse.setStatus(UserStatus.ACTIVE);
+
+    when(userService.updateUser(
+        eq(1L),
+        any(UpdateUserRequest.class)
+    )).thenReturn(mockResponse);
+
+    // 4. Exécuter le Handler
+    usersHandler.handle(exchange);
+
+    // 5. Vérifier l'appel du service
+    verify(userService).updateUser(
+        eq(1L),
+        any(UpdateUserRequest.class)
+    );
+
+    // 6. Vérifier le statut HTTP 200
+    verify(exchange).sendResponseHeaders(eq(200), anyLong());
+
+    // 7. Vérifier le contenu de la réponse
+    String response = responseBody.toString(StandardCharsets.UTF_8);
+
+    assertTrue(response.contains("badr.updated@example.com"));
+    assertTrue(response.contains("Badr"));
+    assertTrue(response.contains("Rami"));
+}
+
+
+@Test
+void shouldReturn404WhenUpdatingNonExistingUser() throws IOException {
+
+    // 1. Préparer le JSON
+    String jsonRequest = """
+        {
+            "firstName": "Badr",
+            "lastName": "Rami",
+            "email": "badr.updated@example.com",
+            "phone": "0612345678"
+        }
+        """;
+
+    // 2. Simuler la requête PUT
+    when(exchange.getRequestMethod()).thenReturn("PUT");
+    when(exchange.getRequestURI()).thenReturn(URI.create("/users/999"));
+
+    when(exchange.getRequestBody()).thenReturn(
+        new ByteArrayInputStream(
+            jsonRequest.getBytes(StandardCharsets.UTF_8)
+        )
+    );
+
+    // 3. Simuler l'exception du service
+    when(userService.updateUser(
+        eq(999L),
+        any(UpdateUserRequest.class)
+    )).thenThrow(
+        new IllegalArgumentException("Utilisateur non trouvé.")
+    );
+
+    // 4. Exécuter le Handler
+    usersHandler.handle(exchange);
+
+    // 5. Vérifier l'appel du service
+    verify(userService).updateUser(
+        eq(999L),
+        any(UpdateUserRequest.class)
+    );
+
+    // 6. Vérifier le statut HTTP 404
+    verify(exchange).sendResponseHeaders(eq(404), anyLong());
+
+    // 7. Vérifier le message
+    String response = responseBody.toString(StandardCharsets.UTF_8);
+
+    assertTrue(response.contains("Utilisateur non trouvé."));
+}
+
+
+
+@Test
+void shouldReturn400WhenJsonIsInvalidDuringUpdate() throws IOException {
+
+    // 1. Préparer un JSON invalide (virgule manquante)
+    String jsonRequest = """
+        {
+            "firstName": "Badr",
+            "lastName": "Rami",
+            "email": "badr.updated@example.com"
+            "phone": "0612345678"
+        }
+        """;
+
+    // 2. Simuler une requête HTTP PUT
+    when(exchange.getRequestMethod()).thenReturn("PUT");
+    when(exchange.getRequestURI()).thenReturn(URI.create("/users/1"));
+
+    // 3. Simuler le corps de la requête
+    when(exchange.getRequestBody()).thenReturn(
+        new ByteArrayInputStream(
+            jsonRequest.getBytes(StandardCharsets.UTF_8)
+        )
+    );
+
+    // 4. Exécuter le handler
+    usersHandler.handle(exchange);
+
+    // 5. Vérifier le statut HTTP 400
+    verify(exchange).sendResponseHeaders(eq(400), anyLong());
+
+    // 6. Vérifier le message d'erreur
+    String response = responseBody.toString(StandardCharsets.UTF_8);
+    assertTrue(response.contains("JSON invalide"));
+
+    // 7. Vérifier que le service n'a pas été appelé
+    verify(userService, never()).updateUser(
+        anyLong(), any(UpdateUserRequest.class)
+    );
+}
+
 
 }
