@@ -518,5 +518,145 @@ void shouldReturn400WhenJsonIsInvalidDuringUpdate() throws IOException {
     );
 }
 
+@Test
+void shouldDeleteUserSuccessfully() throws IOException {
+
+    // 1. Simuler une requête HTTP DELETE
+    when(exchange.getRequestMethod()).thenReturn("DELETE");
+
+    when(exchange.getRequestURI())
+            .thenReturn(URI.create("/users/1"));
+
+    // 2. Exécuter le handler
+    usersHandler.handle(exchange);
+
+    // 3. Vérifier que le service a été appelé avec l'ID 1
+    verify(userService).deactivateUser(1L);
+    // 4. Vérifier le statut HTTP 200
+    verify(exchange).sendResponseHeaders(eq(200), anyLong());
+
+    // 5. Vérifier le message de réponse
+    String response = responseBody.toString(StandardCharsets.UTF_8);
+
+    assertTrue(response.contains("désactivé"));
+}
+
+
+@Test
+void shouldReturn404WhenUserDoesNotExistDuringDeactivation() throws IOException {
+
+    // 1. Simuler une requête HTTP DELETE
+    when(exchange.getRequestMethod()).thenReturn("DELETE");
+
+    when(exchange.getRequestURI())
+            .thenReturn(URI.create("/users/999"));
+
+    // 2. Simuler une exception du service
+    doThrow(new IllegalArgumentException("Utilisateur non trouvé."))
+            .when(userService).deactivateUser(999L);
+
+    // 3. Exécuter le handler
+    usersHandler.handle(exchange);
+
+    // 4. Vérifier que le service a été appelé
+    verify(userService).deactivateUser(999L);
+
+    // 5. Vérifier le statut HTTP 404
+    verify(exchange).sendResponseHeaders(eq(404), anyLong());
+
+    // 6. Vérifier le message d'erreur
+    String response = responseBody.toString(StandardCharsets.UTF_8);
+
+    assertTrue(response.contains("Utilisateur non trouvé."));
+}
+
+
+
+@Test
+void shouldReactivateUserSuccessfully() throws IOException {
+
+    // 1. Préparer le JSON
+    String jsonRequest = """
+        {
+            "email": "badr@example.com",
+            "password": "password123"
+        }
+        """;
+
+    // 2. Simuler une requête HTTP POST
+    when(exchange.getRequestMethod()).thenReturn("POST");
+
+    when(exchange.getRequestURI())
+            .thenReturn(URI.create("/users/reactivate"));
+
+    // 3. Simuler le corps de la requête
+    when(exchange.getRequestBody()).thenReturn(
+        new ByteArrayInputStream(
+            jsonRequest.getBytes(StandardCharsets.UTF_8)
+        )
+    );
+
+    // 4. Exécuter le handler
+    usersHandler.handle(exchange);
+
+    // 5. Vérifier l'appel du service
+    verify(userService).activateUser(
+        "badr@example.com",
+        "password123"
+    );
+
+    // 6. Vérifier le statut HTTP 200
+    verify(exchange).sendResponseHeaders(eq(200), anyLong());
+
+    // 7. Vérifier le message de réponse
+    String response = responseBody.toString(StandardCharsets.UTF_8);
+
+    assertFalse(response.isEmpty());
+}
+
+@Test
+void shouldReturn400WhenReactivationPasswordIsIncorrect() throws IOException {
+
+    // 1. Préparer le JSON
+    String jsonRequest = """
+        {
+            "email": "badr@example.com",
+            "password": "wrongpassword"
+        }
+        """;
+
+    // 2. Simuler une requête HTTP POST
+    when(exchange.getRequestMethod()).thenReturn("POST");
+
+    when(exchange.getRequestURI())
+            .thenReturn(URI.create("/users/reactivate"));
+
+    // 3. Simuler le corps de la requête
+    when(exchange.getRequestBody()).thenReturn(
+        new ByteArrayInputStream(
+            jsonRequest.getBytes(StandardCharsets.UTF_8)
+        )
+    );
+
+    // 4. Simuler une erreur du service
+    doThrow(new IllegalArgumentException(
+            "Email ou mot de passe incorrect."
+    )).when(userService).activateUser(
+            "badr@example.com",
+            "wrongpassword"
+    );
+
+    // 5. Exécuter le Handler
+    usersHandler.handle(exchange);
+
+    // 6. Vérifier le statut HTTP 400
+    verify(exchange).sendResponseHeaders(eq(400), anyLong());
+
+    // 7. Vérifier le message
+    String response = responseBody.toString(StandardCharsets.UTF_8);
+
+    assertTrue(response.contains("Email ou mot de passe incorrect."));
+}
+
 
 }
